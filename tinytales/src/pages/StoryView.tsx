@@ -45,9 +45,7 @@ export const StoryView = () => {
     try {
       const storyData = await getStory(storyId);
       setStory(storyData);
-      console.log('Loaded story:', storyData);
     } catch (error) {
-      console.error('Error loading story:', error);
       toast({
         title: 'Error',
         description: 'Failed to load story. Please try again.',
@@ -63,11 +61,9 @@ export const StoryView = () => {
     setIsLoading(true);
     setIsImageLoading(true);
     try {
-      console.log('Making choice:', choiceIndex);
       await makeChoice(storyId, choiceIndex);
       await loadStory();
     } catch (error) {
-      console.error('Error making choice:', error);
       toast({
         title: 'Error',
         description: 'Failed to make choice. Please try again.',

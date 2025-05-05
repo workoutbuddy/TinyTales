@@ -1,18 +1,15 @@
 import { db } from './firebase';
 import { collection, addDoc, getDoc, doc, updateDoc } from 'firebase/firestore';
-import { Story, StoryPreferences, StorySegment, StoryChoice } from '../types/story';
-import { generateStorySegment, generateIllustration } from './openaiService';
+import { Story, StoryPreferences, StorySegment } from '../types/story';
 
 const SYSTEM_PROMPT = `You are a friendly narrator for children aged 4-9. Generate short, engaging, age-appropriate stories with two choices at the end.`;
 
 export const createStory = async (preferences: StoryPreferences): Promise<string> => {
-  const initialText = await generateStorySegment(preferences, []);
   const initialSegment: StorySegment = {
-    text: initialText,
-    illustration: await generateIllustration(initialText),
+    text: await generateStorySegment(preferences, []),
     choices: [
-      { text: "Enter the cave" },
-      { text: "Climb the tree" }
+      { text: "Enter the cave", nextSegment: "" },
+      { text: "Climb the tree", nextSegment: "" }
     ]
   };
 
@@ -49,18 +46,15 @@ export const makeChoice = async (
   const currentSegment = story.segments[story.currentSegmentIndex];
   const choice = currentSegment.choices[choiceIndex];
 
-  const nextText = await generateStorySegment(
-    story.preferences,
-    story.segments.map(s => s.text),
-    choice.text
-  );
-
   const nextSegment: StorySegment = {
-    text: nextText,
-    illustration: await generateIllustration(nextText),
+    text: await generateStorySegment(
+      story.preferences,
+      story.segments.map(s => s.text),
+      choice.text
+    ),
     choices: [
-      { text: "Continue the adventure" },
-      { text: "Take a different path" }
+      { text: "Continue the adventure", nextSegment: "" },
+      { text: "Take a different path", nextSegment: "" }
     ]
   };
 
@@ -68,4 +62,14 @@ export const makeChoice = async (
     segments: [...story.segments, nextSegment],
     currentSegmentIndex: story.currentSegmentIndex + 1
   });
+};
+
+// Mock function for story generation - replace with actual GPT-4 API call
+const generateStorySegment = async (
+  preferences: StoryPreferences,
+  previousSegments: string[],
+  lastChoice?: string
+): Promise<string> => {
+  // This is a placeholder - implement actual GPT-4 API call here
+  return `Once upon a time, ${preferences.childName} was playing in the ${preferences.setting} when they met a friendly ${preferences.favoriteAnimal}.`;
 }; 

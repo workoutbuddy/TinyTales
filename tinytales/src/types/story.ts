@@ -1,28 +1,25 @@
 export interface StoryPreferences {
-  setting: string;
   childName: string;
-  characters: Array<any>;
   favoriteAnimal: string;
+  setting: string;
+  characters: string[];
 }
 
 export interface StoryChoice {
   text: string;
-  nextSegment?: string;
+  nextSegment: string;
 }
 
 export interface StorySegment {
   text: string;
-  illustration: string;
   choices: StoryChoice[];
+  illustration: string;
 }
 
 export interface Story {
   id: string;
-  createdAt: {
-    seconds: number;
-    nanoseconds: number;
-  };
-  currentSegmentIndex: number;
   preferences: StoryPreferences;
   segments: StorySegment[];
+  currentSegmentIndex: number;
+  createdAt: Date;
 } 
