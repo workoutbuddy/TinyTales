@@ -6,14 +6,11 @@ import { generateStorySegment, generateIllustration } from './openaiService';
 const SYSTEM_PROMPT = `You are a friendly narrator for children aged 4-9. Generate short, engaging, age-appropriate stories with two choices at the end.`;
 
 export const createStory = async (preferences: StoryPreferences): Promise<string> => {
-  const initialText = await generateStorySegment(preferences, []);
+  const initial = await generateStorySegment(preferences, []);
   const initialSegment: StorySegment = {
-    text: initialText,
-    illustration: await generateIllustration(initialText),
-    choices: [
-      { text: "Enter the cave" },
-      { text: "Climb the tree" }
-    ]
+    text: initial.text,
+    illustration: await generateIllustration(initial.text),
+    choices: initial.choices.map((c: string) => ({ text: c }))
   };
 
   const story: Omit<Story, 'id'> = {
@@ -49,19 +46,16 @@ export const makeChoice = async (
   const currentSegment = story.segments[story.currentSegmentIndex];
   const choice = currentSegment.choices[choiceIndex];
 
-  const nextText = await generateStorySegment(
+  const next = await generateStorySegment(
     story.preferences,
     story.segments.map(s => s.text),
     choice.text
   );
 
   const nextSegment: StorySegment = {
-    text: nextText,
-    illustration: await generateIllustration(nextText),
-    choices: [
-      { text: "Continue the adventure" },
-      { text: "Take a different path" }
-    ]
+    text: next.text,
+    illustration: await generateIllustration(next.text),
+    choices: next.choices.map((c: string) => ({ text: c }))
   };
 
   await updateDoc(doc(db, 'stories', storyId), {

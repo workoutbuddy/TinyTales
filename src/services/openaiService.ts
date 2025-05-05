@@ -8,6 +8,14 @@ export const generateStorySegment = async (
   previousSegments: string[],
   lastChoice?: string
 ): Promise<string> => {
+  const characterText = preferences.characters && preferences.characters.length > 0
+    ? `The story should also feature these characters: ${preferences.characters.join(', ')}.`
+    : '';
+  const lessonText = preferences.lifeLesson
+    ? `At the end of the story, include a message that teaches the value of ${preferences.lifeLesson.toLowerCase()}.`
+    : '';
+  const systemPrompt = `You are a friendly narrator for children aged 4-9. Generate short, engaging, age-appropriate stories with two choices at the end. The story should be set in ${preferences.setting} and feature ${preferences.childName} and their favorite animal, ${preferences.favoriteAnimal}. ${characterText} ${lessonText}`;
+
   const response = await fetch(`${OPENAI_API_URL}/chat/completions`, {
     method: 'POST',
     headers: {
@@ -19,7 +27,7 @@ export const generateStorySegment = async (
       messages: [
         {
           role: 'system',
-          content: `You are a friendly narrator for children aged 4-9. Generate short, engaging, age-appropriate stories with two choices at the end. The story should be set in ${preferences.setting} and feature ${preferences.childName} and their favorite animal, ${preferences.favoriteAnimal}.`
+          content: systemPrompt
         },
         ...previousSegments.map(text => ({
           role: 'assistant',

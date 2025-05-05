@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   Box,
   Button,
@@ -18,6 +18,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { FaVolumeUp, FaVolumeMute } from 'react-icons/fa';
 import { getStory, makeChoice } from '../services/storyService';
 import { Story } from '../types/story';
+import { generateStorySegment, generateIllustration } from '../services/openaiService';
 import Background from '../components/common/Background';
 
 const fadeIn = keyframes`
@@ -33,12 +34,43 @@ export const StoryView = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isImageLoading, setIsImageLoading] = useState(true);
+  const nextSegmentsCache = useRef<{ [key: string]: { text: string; illustration: string; choices: any[] } }>({});
 
   useEffect(() => {
     if (storyId) {
       loadStory();
     }
   }, [storyId]);
+
+  useEffect(() => {
+    // Prefetch next segments for all choices when current segment changes
+    if (!story) return;
+    const currentSegment = story.segments[story.currentSegmentIndex];
+    currentSegment.choices.forEach(async (choice, idx) => {
+      const cacheKey = `${story.currentSegmentIndex}_${idx}`;
+      if (!nextSegmentsCache.current[cacheKey]) {
+        try {
+          const nextText = await generateStorySegment(
+            story.preferences,
+            story.segments.map(s => s.text),
+            choice.text
+          );
+          const nextIllustration = await generateIllustration(nextText);
+          // For simplicity, use generic choices for prefetch
+          nextSegmentsCache.current[cacheKey] = {
+            text: nextText,
+            illustration: nextIllustration,
+            choices: [
+              { text: 'Continue the adventure' },
+              { text: 'Take a different path' }
+            ]
+          };
+        } catch (e) {
+          // Ignore prefetch errors
+        }
+      }
+    });
+  }, [story]);
 
   const loadStory = async () => {
     if (!storyId) return;
@@ -59,13 +91,26 @@ export const StoryView = () => {
   };
 
   const handleChoice = async (choiceIndex: number) => {
-    if (!storyId) return;
+    if (!storyId || !story) return;
     setIsLoading(true);
     setIsImageLoading(true);
+    const cacheKey = `${story.currentSegmentIndex}_${choiceIndex}`;
     try {
-      console.log('Making choice:', choiceIndex);
-      await makeChoice(storyId, choiceIndex);
-      await loadStory();
+      if (nextSegmentsCache.current[cacheKey]) {
+        // Use cached segment
+        const cached = nextSegmentsCache.current[cacheKey];
+        const updatedStory = { ...story };
+        updatedStory.segments = [...updatedStory.segments, cached];
+        updatedStory.currentSegmentIndex = updatedStory.currentSegmentIndex + 1;
+        setStory(updatedStory);
+        setIsImageLoading(false);
+        // Optionally, update Firestore in the background
+        makeChoice(storyId, choiceIndex); // still update backend for consistency
+      } else {
+        // Fallback to normal flow
+        await makeChoice(storyId, choiceIndex);
+        await loadStory();
+      }
     } catch (error) {
       console.error('Error making choice:', error);
       toast({

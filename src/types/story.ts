@@ -3,6 +3,7 @@ export interface StoryPreferences {
   childName: string;
   characters: Array<any>;
   favoriteAnimal: string;
+  lifeLesson: string;
 }
 
 export interface StoryChoice {

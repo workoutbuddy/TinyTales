@@ -42,44 +42,106 @@ const characterOptions = [
   {
     category: 'Marvel',
     characters: [
-      'A superhero with a red suit and web powers',
-      'A hero with a star shield',
-      'A genius in a flying metal suit',
-      'A fierce warrior from a hidden kingdom',
+      'Spider-Man',
+      'Captain America',
+      'Iron Man',
+      'Black Panther',
+      'Captain Marvel',
+      'Black Widow',
+      'Ms. Marvel',
+      'Scarlet Witch',
+      'Shuri',
+      'Wasp',
     ],
   },
   {
     category: 'Pixar',
     characters: [
-      'A friendly green dinosaur',
-      'A space ranger with a green suit',
-      'A cowboy toy with a big hat',
-      'A forgetful blue fish',
+      'Arlo', // The Good Dinosaur
+      'Buzz Lightyear',
+      'Woody',
+      'Dory',
+      'Merida', // Brave
+      'Joy', // Inside Out
+      'Sadness', // Inside Out
+      'Riley', // Inside Out
+      'Bo Peep',
+      'Violet Parr', // The Incredibles
+      'Elastigirl', // The Incredibles
     ],
   },
   {
     category: 'Toy Story',
     characters: [
-      'A cowboy toy with a big hat',
-      'A space ranger with a green suit',
-      'A piggy bank that talks',
-      'A nervous green dinosaur toy',
+      'Woody',
+      'Buzz Lightyear',
+      'Hamm',
+      'Rex',
+      'Jessie',
+      'Bo Peep',
+      'Dolly',
+      'Trixie',
     ],
   },
   {
     category: 'Cars',
     characters: [
-      'A red race car who loves to go fast',
-      'A rusty but loyal tow truck',
-      'A strict but fair police car',
-      'A wise old racing coach',
+      'Lightning McQueen',
+      'Mater',
+      'Sheriff',
+      'Doc Hudson',
+      'Sally Carrera',
+      'Cruz Ramirez',
+      'Flo',
     ],
   },
   {
     category: 'Paddington & Peter Rabbit',
     characters: [
-      'A friendly bear in a blue coat and red hat',
-      'A brave rabbit in a blue jacket',
+      'Paddington Bear',
+      'Peter Rabbit',
+      'Lily Bobtail',
+      'Mrs. Tiggy-Winkle',
+    ],
+  },
+  {
+    category: 'Disney Princesses',
+    characters: [
+      'Elsa',
+      'Anna',
+      'Moana',
+      'Rapunzel',
+      'Belle',
+      'Ariel',
+      'Tiana',
+      'Mulan',
+      'Cinderella',
+      'Aurora',
+      'Snow White',
+      'Pocahontas',
+      'Jasmine',
+      'Merida',
+    ],
+  },
+  {
+    category: 'Other Favorites',
+    characters: [
+      'Peppa Pig',
+      'George Pig',
+      'Dora the Explorer',
+      'Doc McStuffins',
+      'Bluey',
+      'Bingo',
+      'Minnie Mouse',
+      'Mickey Mouse',
+      'Goofy',
+      'Donald Duck',
+      'Daisy Duck',
+      'Hello Kitty',
+      'Barbie',
+      'Mirabel Madrigal', // Encanto
+      'Isabela Madrigal', // Encanto
+      'Luisa Madrigal', // Encanto
     ],
   },
 ];
@@ -90,6 +152,19 @@ const characterSelectOptions = characterOptions.map(group => ({
   options: group.characters.map(character => ({ label: character, value: character }))
 }));
 
+const lifeLessons = [
+  'Empathy',
+  'Tolerance',
+  'Kindness',
+  'Honesty',
+  'Perseverance',
+  'Teamwork',
+  'Gratitude',
+  'Respect',
+  'Courage',
+  'Sharing',
+];
+
 export const NewStory = () => {
   const navigate = useNavigate();
   const toast = useToast();
@@ -99,6 +174,7 @@ export const NewStory = () => {
     favoriteAnimal: '',
     setting: '',
     characters: [],
+    lifeLesson: '',
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -259,6 +335,26 @@ export const NewStory = () => {
                       }),
                     }}
                   />
+                </FormControl>
+
+                <FormControl isRequired>
+                  <HStack spacing={4}>
+                    <Icon as={FaUserFriends} w={6} h={6} color="brand.500" />
+                    <FormLabel fontSize="lg">Life Lesson</FormLabel>
+                  </HStack>
+                  <select
+                    name="lifeLesson"
+                    value={preferences.lifeLesson}
+                    onChange={handleChange}
+                    style={{ padding: '12px', borderRadius: '8px', borderColor: '#b31aff', width: '100%', fontSize: '1.1rem' }}
+                  >
+                    <option value="">Choose a lesson</option>
+                    {lifeLessons.map((lesson) => (
+                      <option key={lesson} value={lesson}>
+                        {lesson}
+                      </option>
+                    ))}
+                  </select>
                 </FormControl>
 
                 <Button
