@@ -6,6 +6,7 @@ import { generateStorySegment, generateIllustration } from './openaiService';
 const SYSTEM_PROMPT = `You are a friendly narrator for children aged 4-9. Generate short, engaging, age-appropriate stories with two choices at the end.`;
 
 export const createStory = async (preferences: StoryPreferences): Promise<string> => {
+  console.log('[createStory] called with preferences:', preferences);
   const initial = await generateStorySegment(preferences, []);
   const initialSegment: StorySegment = {
     text: initial.text,
@@ -21,6 +22,7 @@ export const createStory = async (preferences: StoryPreferences): Promise<string
   };
 
   const docRef = await addDoc(collection(db, 'stories'), story);
+  console.log('[createStory] story added to Firestore with id:', docRef.id);
   return docRef.id;
 };
 
