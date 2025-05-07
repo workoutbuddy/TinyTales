@@ -15,6 +15,23 @@ const cleanChoices = (choices: any) =>
         { text: 'Take a different path' }
       ];
 
+function extractStoryAndChoices(segment: any) {
+  let storyText = segment.text;
+  let choices = segment.choices;
+  if (typeof storyText === 'string' && storyText.trim().startsWith('{')) {
+    try {
+      const parsed = JSON.parse(storyText);
+      storyText = parsed.story || storyText;
+      choices = Array.isArray(parsed.choices)
+        ? parsed.choices
+        : ["Continue the adventure", "Take a different path"];
+    } catch {
+      // fallback: use as is
+    }
+  }
+  return { text: storyText, choices };
+}
+
 export const createStory = async (preferences: StoryPreferences): Promise<string> => {
   console.log('[createStory] called with preferences:', preferences);
   try {
@@ -26,10 +43,16 @@ export const createStory = async (preferences: StoryPreferences): Promise<string
     const illustration = await generateIllustration(initial.text);
     console.log('[createStory] illustration generated:', illustration);
 
+    const extracted = extractStoryAndChoices(initial);
     const initialSegment: StorySegment = {
-      text: initial.text || '',
+      text: extracted.text || '',
       illustration: illustration || '',
-      choices: cleanChoices(initial.choices)
+      choices: Array.isArray(extracted.choices)
+        ? extracted.choices.map((c: string) => ({ text: c }))
+        : [
+            { text: 'Continue the adventure' },
+            { text: 'Take a different path' }
+          ]
     };
     console.log('[createStory] initialSegment:', initialSegment);
 
@@ -78,10 +101,16 @@ export const makeChoice = async (
     choice.text
   );
 
+  const extracted = extractStoryAndChoices(next);
   const nextSegment: StorySegment = {
-    text: next.text || '',
-    illustration: (await generateIllustration(next.text)) || '',
-    choices: cleanChoices(next.choices)
+    text: extracted.text || '',
+    illustration: (await generateIllustration(extracted.text)) || '',
+    choices: Array.isArray(extracted.choices)
+      ? extracted.choices.map((c: string) => ({ text: c }))
+      : [
+          { text: 'Continue the adventure' },
+          { text: 'Take a different path' }
+        ]
   };
 
   await updateDoc(doc(db, 'stories', storyId), {
