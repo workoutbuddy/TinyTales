@@ -7,23 +7,36 @@ const SYSTEM_PROMPT = `You are a friendly narrator for children aged 4-9. Genera
 
 export const createStory = async (preferences: StoryPreferences): Promise<string> => {
   console.log('[createStory] called with preferences:', preferences);
-  const initial = await generateStorySegment(preferences, []);
-  const initialSegment: StorySegment = {
-    text: initial.text,
-    illustration: await generateIllustration(initial.text),
-    choices: initial.choices.map((c: string) => ({ text: c }))
-  };
+  try {
+    console.log('[createStory] generating story segment...');
+    const initial = await generateStorySegment(preferences, []);
+    console.log('[createStory] story segment generated:', initial);
 
-  const story: Omit<Story, 'id'> = {
-    preferences,
-    segments: [initialSegment],
-    currentSegmentIndex: 0,
-    createdAt: new Date()
-  };
+    console.log('[createStory] generating illustration...');
+    const illustration = await generateIllustration(initial.text);
+    console.log('[createStory] illustration generated:', illustration);
 
-  const docRef = await addDoc(collection(db, 'stories'), story);
-  console.log('[createStory] story added to Firestore with id:', docRef.id);
-  return docRef.id;
+    const initialSegment: StorySegment = {
+      text: initial.text,
+      illustration,
+      choices: initial.choices.map((c: string) => ({ text: c }))
+    };
+
+    const story: Omit<Story, 'id'> = {
+      preferences,
+      segments: [initialSegment],
+      currentSegmentIndex: 0,
+      createdAt: new Date()
+    };
+
+    console.log('[createStory] adding story to Firestore...');
+    const docRef = await addDoc(collection(db, 'stories'), story);
+    console.log('[createStory] story added to Firestore with id:', docRef.id);
+    return docRef.id;
+  } catch (error) {
+    console.error('[createStory] error:', error);
+    throw error;
+  }
 };
 
 export const getStory = async (storyId: string): Promise<Story | null> => {
