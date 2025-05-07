@@ -110,6 +110,8 @@ export const generateStorySegment = async (
 };
 
 export const generateIllustration = async (prompt: string): Promise<string> => {
+  // Shorten and sanitize prompt for DALL-E
+  const safePrompt = `Create a child-friendly illustration for a story: ${prompt.replace(/\n/g, ' ').replace(/[^\w\s.,!?'-]/g, '').slice(0, 200)}`;
   const response = await fetch(`${OPENAI_API_URL}/images/generations`, {
     method: 'POST',
     headers: {
@@ -118,7 +120,7 @@ export const generateIllustration = async (prompt: string): Promise<string> => {
     },
     body: JSON.stringify({
       model: 'dall-e-3',
-      prompt: `Create a child-friendly illustration for a story: ${prompt}`,
+      prompt: safePrompt,
       n: 1,
       size: '1024x1024'
     })

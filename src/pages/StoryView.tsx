@@ -171,29 +171,47 @@ export const StoryView = () => {
   // Always robustly extract story and choices if text is a JSON string
   let storyText = currentSegment.text;
   let choices = currentSegment.choices;
+  let contextQuestion = '';
 
   if (typeof storyText === 'string' && storyText.trim().startsWith('{')) {
     try {
       const parsed = JSON.parse(storyText);
       storyText = parsed.story || 'A magical story unfolds...';
-      choices = Array.isArray(parsed.choices)
-        ? parsed.choices.map((c: string) => ({ text: c }))
-        : [
-            { text: 'Continue the adventure' },
-            { text: 'Take a different path' }
+      if (Array.isArray(parsed.choices)) {
+        choices = parsed.choices.map((c: string) => ({ text: c }));
+      } else if (typeof parsed.choices === 'string') {
+        // Try to extract two options from the string
+        const match = parsed.choices.match(/Should (.+?) or (.+?)\?/i);
+        if (match) {
+          choices = [
+            { text: match[1].trim() },
+            { text: match[2].trim() }
           ];
+        } else {
+          contextQuestion = parsed.choices;
+          choices = [
+            { text: 'Do something brave' },
+            { text: 'Do something silly' }
+          ];
+        }
+      } else {
+        choices = [
+          { text: 'Do something brave' },
+          { text: 'Do something silly' }
+        ];
+      }
     } catch {
       // Only fallback if parsing fails
       storyText = 'A magical story unfolds...';
       choices = [
-        { text: 'Continue the adventure' },
-        { text: 'Take a different path' }
+        { text: 'Do something brave' },
+        { text: 'Do something silly' }
       ];
     }
   } else if (!choices || choices.length === 0) {
     choices = [
-      { text: 'Continue the adventure' },
-      { text: 'Take a different path' }
+      { text: 'Do something brave' },
+      { text: 'Do something silly' }
     ];
   }
 
@@ -267,6 +285,12 @@ export const StoryView = () => {
                 >
                   {storyText}
                 </Text>
+                {/* Show context question above buttons if present */}
+                {contextQuestion && (
+                  <Text fontSize="lg" color="brand.500" fontWeight="semibold" mb={2} textAlign="center">
+                    {contextQuestion}
+                  </Text>
+                )}
                 <VStack spacing={4} align="stretch" w="100%">
                   {choices && choices.length > 0 ? (
                     choices.map((choice, index) => (
