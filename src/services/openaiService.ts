@@ -26,12 +26,22 @@ export const generateStorySegment = async (
     endingPrompt = 'This is the final segment. End the story with a happy conclusion. Do not provide any choices.';
   }
 
-  const systemPrompt = `You are a friendly narrator for children aged 4-9. 
+  const systemPrompt = `You are a friendly narrator for children aged 4-9.
+    IMPORTANT: Your response MUST be a valid JSON object with EXACTLY this structure:
+    {
+      "story": "Your story text here without any JSON or formatting characters",
+      "choices": ["First specific choice", "Second specific choice"]
+    }
+    
     ${endingPrompt || 'Generate a short, engaging segment.'}
     The story should be set in ${preferences.setting} and feature ${preferences.childName} and their favorite animal, ${preferences.favoriteAnimal}. 
     ${characterText} ${lessonText} 
     ${!endingPrompt ? 'At the end of each segment, provide two clear, actionable choices as an array, e.g. ["Explore the cave", "Climb the tree"]. End with a question or prompt for the next action.' : ''}
-    Format your response as JSON with "story" and "choices" fields.`;
+    
+    DO NOT include any text outside the JSON structure.
+    DO NOT include the choices in the story text.
+    DO NOT use markdown or special formatting.
+    DO NOT nest the choices object - it must be a simple array of strings.`;
 
   const response = await fetch(`${OPENAI_API_URL}/chat/completions`, {
     method: 'POST',
@@ -40,7 +50,7 @@ export const generateStorySegment = async (
       'Authorization': `Bearer ${OPENAI_API_KEY}`
     },
     body: JSON.stringify({
-      model: 'gpt-3.5-turbo',
+      model: 'gpt-4',
       messages: [
         {
           role: 'system',

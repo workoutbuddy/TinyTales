@@ -88,6 +88,7 @@ function isGenericChoice(choice: string): boolean {
 // Function to validate and clean choices
 function validateChoices(choices: any[]): StoryChoice[] {
   if (!Array.isArray(choices)) return [];
+  
   // Map to string for easier filtering
   const mappedChoices = choices.map(c => {
     if (!c) return '';
@@ -95,15 +96,52 @@ function validateChoices(choices: any[]): StoryChoice[] {
     if (typeof c.text === 'string') return c.text.trim();
     if (c.text && typeof c.text.text === 'string') return c.text.text.trim();
     return '';
-  });
+  }).filter(Boolean); // Remove empty strings
+
+  // If we have more than 2 choices, try to find the best two
+  if (mappedChoices.length > 2) {
+    // Score each choice based on quality
+    const scoredChoices = mappedChoices.map(choice => {
+      let score = 0;
+      // Longer choices are better (but not too long)
+      if (choice.length > 15 && choice.length < 100) score += 2;
+      // Contains action verbs
+      if (GOOD_ACTION_VERBS.some(verb => choice.toLowerCase().includes(verb))) score += 1;
+      // Contains descriptive words
+      if (GOOD_DESCRIPTIVE_WORDS.some(word => choice.toLowerCase().includes(word))) score += 1;
+      // No generic words
+      if (!GENERIC_CHOICES.some(generic => choice.toLowerCase().includes(generic))) score += 2;
+      // No question marks
+      if (!choice.includes('?')) score += 1;
+      // No excessive conjunctions
+      const conjunctionCount = (choice.match(/and|or|but|because|if|when|while/g) || []).length;
+      if (conjunctionCount <= 1) score += 1;
+      
+      return { choice, score };
+    });
+
+    // Sort by score and take top 2
+    const bestChoices = scoredChoices
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 2)
+      .map(scored => scored.choice);
+
+    // If we have two good choices, use them
+    if (bestChoices.length === 2 && bestChoices.every(c => !isGenericChoice(c))) {
+      return bestChoices.map(choice => ({ text: choice }));
+    }
+  }
+
   // Filter out generic/empty/very short choices
   const validChoices = mappedChoices
     .filter(choice => choice && !isGenericChoice(choice))
     .map(choice => ({ text: choice }));
+
   // If we don't have exactly 2 valid choices, return [] so fallback/ending logic can take over
   if (validChoices.length !== 2) {
     return [];
   }
+
   return validChoices;
 }
 
@@ -170,9 +208,10 @@ function extractStoryAndChoices(segment: any) {
   let choices = segment.choices;
   let contextQuestion = '';
 
-  // If the text is a JSON string, try to parse it
+  // If the text is a JSON string, try to parse it with better error handling
   if (typeof storyText === 'string' && storyText.trim().startsWith('{')) {
     try {
+      // First attempt: Direct parse
       const parsed = safeJsonParse(storyText);
       if (parsed && parsed.story) {
         storyText = parsed.story;
@@ -182,13 +221,40 @@ function extractStoryAndChoices(segment: any) {
       }
     } catch (error) {
       console.error('Failed to parse story JSON:', error);
+      // Second attempt: Clean the string and try again
+      try {
+        const cleanedText = storyText
+          .replace(/[\u0000-\u0019]+/g, ' ') // Remove control chars
+          .replace(/\n\s*\n/g, '\n') // Remove extra newlines
+          .trim();
+        const parsed = JSON.parse(cleanedText);
+        if (parsed && parsed.story) {
+          storyText = parsed.story;
+          if (Array.isArray(parsed.choices)) {
+            choices = parsed.choices;
+          }
+        }
+      } catch (secondError) {
+        console.error('Failed second JSON parse attempt:', secondError);
+        // If both attempts fail, use the original text
+        storyText = storyText.replace(/[\u0000-\u0019]+/g, ' ').trim();
+      }
     }
   }
 
-  // If choices are not valid, try to extract from text using regex
-  if (!Array.isArray(choices) || choices.length !== 2) {
-    if (typeof storyText === 'string') {
-      const extracted = extractChoicesFromText(storyText);
+  // Clean up story text and extract choices if they're embedded
+  if (typeof storyText === 'string') {
+    // Remove any embedded choices from the story text
+    storyText = storyText
+      .replace(/What should they do next\?.*$/s, '') // Remove "What should they do next?" and everything after
+      .replace(/\[.*?\]/g, '') // Remove any remaining choice arrays
+      .replace(/\n\s*\n/g, '\n') // Remove extra newlines
+      .replace(/\s+/g, ' ') // Normalize whitespace
+      .trim();
+
+    // If choices are not valid, try to extract them from the original text
+    if (!Array.isArray(choices) || choices.length !== 2) {
+      const extracted = extractChoicesFromText(segment.text);
       if (extracted.length === 2) {
         choices = extracted;
       }
@@ -199,9 +265,9 @@ function extractStoryAndChoices(segment: any) {
   if (Array.isArray(choices)) {
     choices = choices.map(choice => {
       if (typeof choice === 'string') {
-        return { text: choice };
+        return { text: choice.trim() };
       } else if (typeof choice === 'object' && choice !== null) {
-        return { text: choice.text || choice.toString() };
+        return { text: (choice.text || choice.toString()).trim() };
       }
       return null;
     }).filter(Boolean); // Remove any null entries
@@ -214,6 +280,7 @@ function extractStoryAndChoices(segment: any) {
     if (isEnding(storyText)) {
       choices = [];
     } else {
+      // Use context-aware fallback choices
       const fallbackChoices = generateFallbackChoices(storyText, 0);
       choices = fallbackChoices;
     }
@@ -302,7 +369,7 @@ async function generateStorySegmentWithRetries(
   previousSegments: string[],
   lastChoice: string | undefined,
   pageIndex: number,
-  maxRetries: number = 3
+  maxRetries: number = 5
 ): Promise<{
   text: string;
   choices: StoryChoice[];
@@ -351,11 +418,13 @@ async function generateStorySegmentWithRetries(
   // Fallbacks only if all retries fail
   console.log(`[FALLBACK] All retries failed. Page index: ${pageIndex}. Last error:`, lastError);
   
-  const fallbackChoices = generateFallbackChoices(result?.text || '', pageIndex);
-
+  // Return a fallback with "Continue Adventure" options
   return { 
     text: result?.text || 'A magical story unfolds...',
-    choices: fallbackChoices,
+    choices: [
+      { text: 'Continue the adventure' },
+      { text: 'Take a different path' }
+    ],
     rawModelOutputs,
     isFallback: true
   };
