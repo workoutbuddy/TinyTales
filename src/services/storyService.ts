@@ -128,12 +128,9 @@ function validateChoices(choices: any[]): StoryChoice[] {
     })
     .map(c => ({ text: c.text.trim() }));
 
-  // If we don't have exactly 2 valid choices, return fallbacks
+  // If we don't have exactly 2 valid choices, return context-aware fallbacks
   if (validChoices.length !== 2) {
-    return [
-      { text: 'Explore the magical world' },
-      { text: 'Meet the friendly creatures' }
-    ];
+    return generateFallbackChoices('', 0);
   }
 
   return validChoices;
@@ -177,8 +174,8 @@ function extractStoryAndChoices(segment: any) {
       } else if (typeof choice === 'object' && choice !== null) {
         return { text: choice.text || choice.toString() };
       }
-      return { text: 'Continue the story' };
-    });
+      return null;
+    }).filter(Boolean); // Remove any null entries
   } else {
     choices = [];
   }
@@ -193,19 +190,24 @@ function extractStoryAndChoices(segment: any) {
 }
 
 // Function to generate context-aware fallback choices
-function generateFallbackChoices(storyContext: string, pageIndex: number): { text: string }[] {
+function generateFallbackChoices(storyContext: string, pageIndex: number): StoryChoice[] {
   const context = storyContext.toLowerCase();
   
   // Extract themes from context
+  const hasCastle = context.includes('castle') || context.includes('palace') || context.includes('tower');
   const hasForest = context.includes('forest') || context.includes('tree') || context.includes('wood');
   const hasWater = context.includes('water') || context.includes('river') || context.includes('lake') || context.includes('ocean');
-  const hasCastle = context.includes('castle') || context.includes('palace') || context.includes('tower');
   const hasDragon = context.includes('dragon') || context.includes('monster') || context.includes('creature');
   const hasMagic = context.includes('magic') || context.includes('spell') || context.includes('enchanted');
   
   if (pageIndex === 0) {
     // First page choices
-    if (hasForest) {
+    if (hasCastle) {
+      return [
+        { text: 'Enter the grand castle to meet the royal family' },
+        { text: 'Explore the castle gardens to find the secret passage' }
+      ];
+    } else if (hasForest) {
       return [
         { text: 'Enter the mysterious forest to find the ancient tree' },
         { text: 'Follow the sparkling path to the magical clearing' }
@@ -215,10 +217,15 @@ function generateFallbackChoices(storyContext: string, pageIndex: number): { tex
         { text: 'Dive into the crystal-clear water to explore the underwater world' },
         { text: 'Follow the river to discover the hidden waterfall' }
       ];
-    } else if (hasCastle) {
+    } else if (hasDragon) {
       return [
-        { text: 'Enter the grand castle to meet the royal family' },
-        { text: 'Explore the castle gardens to find the secret passage' }
+        { text: 'Approach the friendly dragon to learn its secret' },
+        { text: 'Hide behind the rocks to observe the dragon first' }
+      ];
+    } else if (hasMagic) {
+      return [
+        { text: 'Touch the glowing crystal to activate its magic' },
+        { text: 'Search for the ancient spellbook in the library' }
       ];
     } else {
       return [
@@ -238,6 +245,11 @@ function generateFallbackChoices(storyContext: string, pageIndex: number): { tex
         { text: 'Touch the glowing crystal to activate its magic' },
         { text: 'Search for the ancient spellbook in the library' }
       ];
+    } else if (hasCastle) {
+      return [
+        { text: 'Explore the castle tower to find the royal treasure' },
+        { text: 'Visit the castle kitchen to help prepare a feast' }
+      ];
     } else {
       return [
         { text: 'Follow the magical trail to the enchanted garden' },
@@ -246,7 +258,10 @@ function generateFallbackChoices(storyContext: string, pageIndex: number): { tex
     }
   }
   
-  return [];
+  return [
+    { text: 'Continue your magical adventure' },
+    { text: 'Discover new wonders in this enchanted world' }
+  ];
 }
 
 async function generateStorySegmentWithRetries(
