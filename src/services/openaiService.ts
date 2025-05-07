@@ -12,9 +12,20 @@ export const generateStorySegment = async (
     ? `The story should also feature these characters: ${preferences.characters.join(', ')}.`
     : '';
   const lessonText = preferences.lifeLesson
-    ? `At the end of the story, include a message that teaches the value of ${preferences.lifeLesson.toLowerCase()}.`
+    ? `Include a message that teaches the value of ${preferences.lifeLesson.toLowerCase()}.`
     : '';
-  const systemPrompt = `You are a friendly narrator for children aged 4-9. Generate short, engaging, age-appropriate stories with two choices at the end. The story should be set in ${preferences.setting} and feature ${preferences.childName} and their favorite animal, ${preferences.favoriteAnimal}. ${characterText} ${lessonText} Format your response as JSON with the following structure: { "story": "The story text...", "choices": ["First choice", "Second choice"] }`;
+
+  // Determine if this should be the final segment
+  const isFinalSegment = previousSegments.length >= 2;  // 3rd page
+  const mustEndNow = previousSegments.length >= 3;      // 4th page
+
+  const systemPrompt = `You are a friendly narrator for children aged 4-9. 
+    ${isFinalSegment ? 'This is the final segment. Create a satisfying ending.' : 'Generate a short, engaging segment.'}
+    ${mustEndNow ? 'The story MUST end now with a happy conclusion.' : ''}
+    The story should be set in ${preferences.setting} and feature ${preferences.childName} and their favorite animal, ${preferences.favoriteAnimal}. 
+    ${characterText} ${lessonText} 
+    ${!isFinalSegment ? 'End with "What should happen next? Choose the first path or the second path."' : ''}
+    Format your response as JSON with "story" and "choices" fields.`;
 
   const response = await fetch(`${OPENAI_API_URL}/chat/completions`, {
     method: 'POST',
@@ -35,11 +46,13 @@ export const generateStorySegment = async (
         })),
         ...(lastChoice ? [{
           role: 'user',
-          content: `The child chose to: ${lastChoice}`
+          content: `The child chose: ${lastChoice}`
         }] : []),
         {
           role: 'user',
-          content: 'Continue the story with a new segment and provide two choices at the end.'
+          content: isFinalSegment 
+            ? 'Create a satisfying ending for the story.'
+            : 'Continue the story with a new segment.'
         }
       ],
       temperature: 0.7,
@@ -56,20 +69,30 @@ export const generateStorySegment = async (
   const data = await response.json();
   let storyText = '';
   let choices: string[] = [];
+  
   try {
-    let content = JSON.parse(data.choices[0].message.content);
-    // If content is a stringified JSON, parse again
+    let content = data.choices[0].message.content;
+    // If content is a string that looks like JSON, parse it
     if (typeof content === 'string' && content.trim().startsWith('{')) {
-      content = JSON.parse(content);
+      const parsed = JSON.parse(content);
+      storyText = parsed.story || content;
+      choices = isFinalSegment 
+        ? ["The End"] 
+        : ["First path", "Second path"];
+    } else {
+      storyText = content;
+      choices = isFinalSegment 
+        ? ["The End"] 
+        : ["First path", "Second path"];
     }
-    storyText = content.story || data.choices[0].message.content;
-    choices = content.choices || ["Continue the adventure", "Take a different path"];
   } catch (e) {
-    // Fallback: treat the whole response as text, and use generic choices
-    const raw = data.choices[0].message.content;
-    storyText = raw || 'Once upon a time...';
-    choices = ["Continue the adventure", "Take a different path"];
+    console.error('Error parsing story:', e);
+    storyText = data.choices[0].message.content;
+    choices = isFinalSegment 
+      ? ["The End"] 
+      : ["First path", "Second path"];
   }
+
   return { text: storyText, choices };
 };
 

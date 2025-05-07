@@ -152,30 +152,27 @@ export const StoryView = () => {
   const currentSegment = story.segments[story.currentSegmentIndex];
   console.log('currentSegment', currentSegment);
 
-  // Robustly extract story and choices if text is a JSON string
+  // Always robustly extract story and choices if text is a JSON string
   let storyText = currentSegment.text;
   let choices = currentSegment.choices;
 
   if (typeof storyText === 'string' && storyText.trim().startsWith('{')) {
     try {
       const parsed = JSON.parse(storyText);
-      if (parsed.story) storyText = parsed.story;
-      if (parsed.choices) {
-        choices = parsed.choices.map((c: string) => ({ text: c }));
-      } else if (!choices || choices.length === 0) {
-        choices = [
-          { text: 'Continue the adventure' },
-          { text: 'Take a different path' }
-        ];
-      }
+      storyText = parsed.story || 'A magical story unfolds...';
+      choices = Array.isArray(parsed.choices)
+        ? parsed.choices.map((c: string) => ({ text: c }))
+        : [
+            { text: 'Continue the adventure' },
+            { text: 'Take a different path' }
+          ];
     } catch {
-      // fallback: use as is
-      if (!choices || choices.length === 0) {
-        choices = [
-          { text: 'Continue the adventure' },
-          { text: 'Take a different path' }
-        ];
-      }
+      // Only fallback if parsing fails
+      storyText = 'A magical story unfolds...';
+      choices = [
+        { text: 'Continue the adventure' },
+        { text: 'Take a different path' }
+      ];
     }
   } else if (!choices || choices.length === 0) {
     choices = [
