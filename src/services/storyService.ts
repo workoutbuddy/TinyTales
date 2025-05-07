@@ -21,17 +21,15 @@ function extractStoryAndChoices(segment: any) {
   if (typeof storyText === 'string' && storyText.trim().startsWith('{')) {
     try {
       const parsed = JSON.parse(storyText);
-      storyText = parsed.story || storyText;
+      storyText = parsed.story || 'A magical story unfolds...';
       choices = Array.isArray(parsed.choices)
         ? parsed.choices
         : ["Continue the adventure", "Take a different path"];
     } catch {
-      // fallback: use as is
+      // Only fallback if parsing fails
+      storyText = 'A magical story unfolds...';
+      choices = ["Continue the adventure", "Take a different path"];
     }
-  }
-  // Ensure storyText is never a JSON string
-  if (typeof storyText === 'string' && storyText.trim().startsWith('{')) {
-    storyText = 'A magical story unfolds...';
   }
   return { text: storyText, choices };
 }
