@@ -19,7 +19,12 @@ export const createStory = async (preferences: StoryPreferences): Promise<string
     const initialSegment: StorySegment = {
       text: initial.text,
       illustration,
-      choices: initial.choices.map((c: string) => ({ text: c }))
+      choices: Array.isArray(initial.choices)
+        ? initial.choices.map((c: string) => ({ text: c }))
+        : [
+            { text: 'Continue the adventure' },
+            { text: 'Take a different path' }
+          ]
     };
 
     const story: Omit<Story, 'id'> = {
@@ -70,7 +75,12 @@ export const makeChoice = async (
   const nextSegment: StorySegment = {
     text: next.text,
     illustration: await generateIllustration(next.text),
-    choices: next.choices.map((c: string) => ({ text: c }))
+    choices: Array.isArray(next.choices)
+      ? next.choices.map((c: string) => ({ text: c }))
+      : [
+          { text: 'Continue the adventure' },
+          { text: 'Take a different path' }
+        ]
   };
 
   await updateDoc(doc(db, 'stories', storyId), {
