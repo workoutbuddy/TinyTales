@@ -111,27 +111,34 @@ export const generateStorySegment = async (
 
 export const generateIllustration = async (prompt: string): Promise<string> => {
   // Shorten and sanitize prompt for DALL-E
-  const safePrompt = `Create a child-friendly illustration for a story: ${prompt.replace(/\n/g, ' ').replace(/[^\w\s.,!?'-]/g, '').slice(0, 200)}`;
-  const response = await fetch(`${OPENAI_API_URL}/images/generations`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${OPENAI_API_KEY}`
-    },
-    body: JSON.stringify({
-      model: 'dall-e-3',
-      prompt: safePrompt,
-      n: 1,
-      size: '1024x1024'
-    })
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    console.error('OpenAI API Error:', error);
-    throw new Error('Failed to generate illustration');
+  let safePrompt = prompt.replace(/\n/g, ' ')
+    .replace(/["*#^_`~$%{}<>|\\]/g, '') // remove problematic characters
+    .replace(/\s+/g, ' ') // collapse whitespace
+    .slice(0, 250); // truncate to 250 chars
+  safePrompt = `Create a child-friendly illustration for a story: ${safePrompt}`;
+  try {
+    const response = await fetch(`${OPENAI_API_URL}/images/generations`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${OPENAI_API_KEY}`
+      },
+      body: JSON.stringify({
+        model: 'dall-e-3',
+        prompt: safePrompt,
+        n: 1,
+        size: '1024x1024'
+      })
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      console.error('OpenAI API Error (image):', error);
+      return '';
+    }
+    const data = await response.json();
+    return data.data[0].url;
+  } catch (err) {
+    console.error('OpenAI API Exception (image):', err);
+    return '';
   }
-
-  const data = await response.json();
-  return data.data[0].url;
 }; 

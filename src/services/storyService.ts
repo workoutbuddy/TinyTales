@@ -35,7 +35,7 @@ Format your response as:
   "choices": ["First specific choice", "Second specific choice"]
 }`;
 
-const SHOW_ILLUSTRATIONS = false; // Set to true to enable picture generation
+const SHOW_ILLUSTRATIONS = true; // Set to true to enable picture generation
 
 // List of generic choices to filter out
 const GENERIC_CHOICES = [
@@ -65,74 +65,45 @@ const GOOD_DESCRIPTIVE_WORDS = [
 // Function to check if a choice is too generic
 function isGenericChoice(choice: string): boolean {
   const lowerChoice = choice.toLowerCase();
-  
   // Check for generic words
   if (GENERIC_CHOICES.some(generic => lowerChoice.includes(generic))) {
     return true;
   }
-
-  // Check length constraints
-  if (choice.length < 15 || choice.length > 100) {
-    return true;
-  }
-
-  // Check for action verbs
-  const hasActionVerb = GOOD_ACTION_VERBS.some(verb => lowerChoice.includes(verb));
-  if (!hasActionVerb) {
-    return true;
-  }
-
-  // Check for descriptive words
-  const hasDescriptiveWord = GOOD_DESCRIPTIVE_WORDS.some(word => lowerChoice.includes(word));
-  if (!hasDescriptiveWord) {
-    return true;
-  }
-
   // Check for question marks (choices should be statements, not questions)
   if (choice.includes('?')) {
     return true;
   }
-
   // Check for too many conjunctions (complex choices are harder to understand)
   const conjunctionCount = (choice.match(/and|or|but|because|if|when|while/g) || []).length;
   if (conjunctionCount > 1) {
     return true;
   }
-
+  // Only filter out if empty or very short
+  if (choice.length < 8) {
+    return true;
+  }
   return false;
 }
 
 // Function to validate and clean choices
 function validateChoices(choices: any[]): StoryChoice[] {
   if (!Array.isArray(choices)) return [];
-  
-  const validChoices = choices
-    .filter(c => {
-      if (!c || typeof c.text !== 'string') return false;
-      
-      const choice = c.text.trim();
-      
-      // Basic validation
-      if (isGenericChoice(choice)) return false;
-      
-      // Check for balanced choices (similar length and complexity)
-      if (choices.length === 2) {
-        const otherChoice = choices.find(oc => oc !== c);
-        if (otherChoice) {
-          const lengthDiff = Math.abs(choice.length - otherChoice.text.length);
-          if (lengthDiff > 30) return false; // Too different in length
-        }
-      }
-      
-      return true;
-    })
-    .map(c => ({ text: c.text.trim() }));
-
-  // If we don't have exactly 2 valid choices, return context-aware fallbacks
+  // Map to string for easier filtering
+  const mappedChoices = choices.map(c => {
+    if (!c) return '';
+    if (typeof c === 'string') return c.trim();
+    if (typeof c.text === 'string') return c.text.trim();
+    if (c.text && typeof c.text.text === 'string') return c.text.text.trim();
+    return '';
+  });
+  // Filter out generic/empty/very short choices
+  const validChoices = mappedChoices
+    .filter(choice => choice && !isGenericChoice(choice))
+    .map(choice => ({ text: choice }));
+  // If we don't have exactly 2 valid choices, return [] so fallback/ending logic can take over
   if (validChoices.length !== 2) {
-    return generateFallbackChoices('', 0);
+    return [];
   }
-
   return validChoices;
 }
 
@@ -144,6 +115,54 @@ function safeJsonParse(str: string) {
   } catch {
     return null;
   }
+}
+
+function extractChoicesFromText(text: string): string[] {
+  // Try to extract choices: ["Choice 1", "Choice 2"] from the text
+  const match = text.match(/choices\s*:\s*\[(.*?)\]/is);
+  if (match && match[1]) {
+    // Split by quotes and commas, filter out empty
+    const raw = match[1];
+    const choices = raw.match(/"(.*?)"/g);
+    if (choices && choices.length === 2) {
+      return choices.map(c => c.replace(/"/g, '').trim());
+    }
+  }
+  // Try to extract numbered choices (e.g., 1. ... 2. ...), robust to quotes, asterisks, whitespace
+  // Look for lines like: 1. "..." or 1. ...
+  const numbered = text.match(/\n\s*1\.?\s*["*]?(.*?)["*]?\s*\n\s*2\.?\s*["*]?(.*?)["*]?(\n|$)/s);
+  if (numbered && numbered[1] && numbered[2]) {
+    return [numbered[1].trim(), numbered[2].trim()];
+  }
+  // Try to extract any two consecutive lines at the end that look like choices
+  const lines = text.trim().split('\n').map(l => l.trim()).filter(Boolean);
+  // Look for last two non-empty lines that are not generic
+  for (let i = lines.length - 2; i >= 0; i--) {
+    const c1 = lines[i];
+    const c2 = lines[i + 1];
+    if (
+      c1.length > 10 && c2.length > 10 &&
+      !isGenericChoice(c1) && !isGenericChoice(c2)
+    ) {
+      return [c1, c2];
+    }
+  }
+  return [];
+}
+
+// Function to check if a story segment is an ending
+function isEnding(text: string): boolean {
+  if (!text) return false;
+  const lower = text.toLowerCase();
+  return (
+    lower.includes('the end') ||
+    lower.includes('always be friends') ||
+    lower.includes('cherished memories') ||
+    lower.includes('happily ever after') ||
+    lower.includes('grateful for the wonderful adventures') ||
+    lower.includes('story came to a peaceful and satisfying end') ||
+    !!lower.match(/(as the day (came|drew) to an end|finally reached .+ waterfall|knew that they would always be friends)/)
+  );
 }
 
 function extractStoryAndChoices(segment: any) {
@@ -166,6 +185,16 @@ function extractStoryAndChoices(segment: any) {
     }
   }
 
+  // If choices are not valid, try to extract from text using regex
+  if (!Array.isArray(choices) || choices.length !== 2) {
+    if (typeof storyText === 'string') {
+      const extracted = extractChoicesFromText(storyText);
+      if (extracted.length === 2) {
+        choices = extracted;
+      }
+    }
+  }
+
   // Ensure choices is an array of objects with text property
   if (Array.isArray(choices)) {
     choices = choices.map(choice => {
@@ -180,10 +209,14 @@ function extractStoryAndChoices(segment: any) {
     choices = [];
   }
 
-  // If no valid choices were found, generate context-aware fallbacks
+  // If no valid choices were found, check for ending
   if (choices.length !== 2) {
-    const fallbackChoices = generateFallbackChoices(storyText, 0);
-    choices = fallbackChoices;
+    if (isEnding(storyText)) {
+      choices = [];
+    } else {
+      const fallbackChoices = generateFallbackChoices(storyText, 0);
+      choices = fallbackChoices;
+    }
   }
 
   return { text: storyText, choices, contextQuestion };

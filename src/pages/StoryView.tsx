@@ -45,6 +45,17 @@ export const StoryView = () => {
   const [error, setError] = useState('');
   const [rawModelOutputs, setRawModelOutputs] = useState<any[]>([]);
 
+  // Update rawModelOutputs state if it's empty but available in currentSegment
+  useEffect(() => {
+    if (story && !rawModelOutputs.length) {
+      const currentSegment = story.segments[story.currentSegmentIndex];
+      if (currentSegment.rawModelOutputs?.length) {
+        console.log('DEBUG: Updating rawModelOutputs state from currentSegment');
+        setRawModelOutputs(currentSegment.rawModelOutputs);
+      }
+    }
+  }, [story, rawModelOutputs.length]);
+
   useEffect(() => {
     if (storyId) {
       loadStory();
@@ -167,58 +178,68 @@ export const StoryView = () => {
   }
 
   const currentSegment = story.segments[story.currentSegmentIndex];
-  console.log('currentSegment', currentSegment);
+  console.log('DEBUG: currentSegment full object:', JSON.stringify(currentSegment, null, 2));
+  console.log('DEBUG: rawModelOutputs state:', JSON.stringify(rawModelOutputs, null, 2));
 
   // Robustly extract story text
   let storyText = currentSegment.text;
-  let choices: { text: string }[] = [];
-
-  // Use choices from rawModelOutputs if available and non-empty
-  if (
-    rawModelOutputs &&
-    rawModelOutputs.length > 0 &&
-    Array.isArray(rawModelOutputs[0].choices) &&
-    rawModelOutputs[0].choices.length > 0
-  ) {
-    choices = rawModelOutputs[0].choices.map((c: any) =>
-      typeof c === 'string' ? { text: c } : c
-    );
-  } else if (
-    Array.isArray(currentSegment.choices) &&
-    currentSegment.choices.length > 0 &&
-    !currentSegment.choices.some(c =>
-      typeof c.text === 'string' &&
-      (c.text.toLowerCase().includes('enter the magical world') ||
-       c.text.toLowerCase().includes('continue the story') ||
-       c.text.toLowerCase().includes('meet your new friends') ||
-       c.text.toLowerCase().includes('do something brave') ||
-       c.text.toLowerCase().includes('do something silly'))
-    )
-  ) {
-    choices = currentSegment.choices;
-  }
-
-  // If storyText is a JSON string, extract the story or text field (never choices)
+  console.log('DEBUG: Initial storyText:', storyText);
+  
   if (typeof storyText === 'string' && storyText.trim().startsWith('{')) {
     try {
       const parsed = JSON.parse(storyText);
+      console.log('DEBUG: Parsed JSON:', parsed);
       storyText = parsed.story || parsed.text || 'A magical story unfolds...';
-    } catch {
-      // If parsing fails, just use the string as-is
+      if (typeof storyText !== 'string') {
+        storyText = 'A magical story unfolds...';
+      }
+    } catch (e) {
+      console.log('DEBUG: JSON parse error:', e);
+      storyText = 'A magical story unfolds...';
     }
   }
+  console.log('DEBUG: Final storyText:', storyText);
 
-  // If no valid choices, show only 'The End' button
+  // --- Robust generic/fallback filtering ---
+  const GENERIC_FALLBACKS = [
+    'continue the adventure',
+    'take a different path',
+    'do something brave',
+    'do something silly',
+    'enter the magical world to begin your adventure',
+    'follow the sparkling path to meet your new friends',
+    'continue your magical adventure',
+    'discover new wonders in this enchanted world',
+    'continue the story',
+    'meet your new friends'
+  ];
+  function extractChoiceText(choice: any): string {
+    if (typeof choice === 'string') return choice;
+    if (choice && typeof choice.text === 'string') return choice.text;
+    if (choice && choice.text && typeof choice.text.text === 'string') return choice.text.text;
+    return '';
+  }
+  let choices: { text: string }[] = [];
+  // Try rawModelOutputs first
+  if (rawModelOutputs && rawModelOutputs.length > 0) {
+    const modelChoices = rawModelOutputs[0].choices;
+    if (Array.isArray(modelChoices) && modelChoices.length > 0) {
+      choices = modelChoices.map((c: any) => ({ text: extractChoiceText(c) }));
+    }
+  }
+  // If no choices from rawModelOutputs, try currentSegment.choices
+  if (!choices || choices.length === 0) {
+    if (Array.isArray(currentSegment.choices) && currentSegment.choices.length > 0) {
+      choices = currentSegment.choices.map((c: any) => ({ text: extractChoiceText(c) }));
+    }
+  }
+  // Filter out all generic/fallback choices
+  choices = choices.filter(c => c.text && !GENERIC_FALLBACKS.includes(c.text.toLowerCase()));
+  // If still no valid choices, show The End
   if (!choices || choices.length === 0) {
     choices = [{ text: 'The End' }];
   }
-
-  // Add logging for debugging choices
-  console.log('UI: currentSegment.choices:', choices);
-  if (Array.isArray(choices)) {
-    choices.forEach((c, i) => console.log(`UI: choice[${i}]:`, c.text));
-  }
-  console.log('UI: rawModelOutputs:', rawModelOutputs);
+  console.log('DEBUG: Final choices:', choices);
 
   return (
     <>
@@ -290,12 +311,6 @@ export const StoryView = () => {
                 >
                   {storyText}
                 </Text>
-                {/* Show raw model output for debugging */}
-                {rawModelOutputs && rawModelOutputs.length > 0 && (
-                  <Box bg="gray.50" borderRadius="md" p={2} mb={4} fontSize="xs" color="gray.500" maxH="120px" overflowY="auto">
-                    <pre>{JSON.stringify(rawModelOutputs, null, 2)}</pre>
-                  </Box>
-                )}
                 {/* Show loading spinner while waiting for choices */}
                 {isLoading && (
                   <VStack py={8}>
