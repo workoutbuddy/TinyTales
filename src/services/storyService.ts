@@ -15,17 +15,27 @@ const cleanChoices = (choices: any) =>
         { text: 'Take a different path' }
       ];
 
+function safeJsonParse(str: string) {
+  try {
+    // Remove control characters except for newlines and tabs
+    const sanitized = str.replace(/[\u0000-\u0019]+/g, ' ');
+    return JSON.parse(sanitized);
+  } catch {
+    return null;
+  }
+}
+
 function extractStoryAndChoices(segment: any) {
   let storyText = segment.text;
   let choices = segment.choices;
   if (typeof storyText === 'string' && storyText.trim().startsWith('{')) {
-    try {
-      const parsed = JSON.parse(storyText);
-      storyText = parsed.story || 'A magical story unfolds...';
+    const parsed = safeJsonParse(storyText);
+    if (parsed && parsed.story) {
+      storyText = parsed.story;
       choices = Array.isArray(parsed.choices)
         ? parsed.choices
         : ["Continue the adventure", "Take a different path"];
-    } catch {
+    } else {
       // Only fallback if parsing fails
       storyText = 'A magical story unfolds...';
       choices = ["Continue the adventure", "Take a different path"];
