@@ -2,6 +2,8 @@ import { db } from './firebase';
 import { collection, addDoc, getDoc, doc, updateDoc } from 'firebase/firestore';
 import { Story, StoryPreferences, StorySegment, StoryChoice } from '../types/story';
 import { generateStorySegment, generateIllustration } from './openaiService';
+import { auth } from './firebase';
+import { query, getDocs, where, orderBy } from 'firebase/firestore';
 
 const SYSTEM_PROMPT = `You are a friendly narrator for children aged 4-9. Generate short, engaging, age-appropriate stories with two choices at the end.
 
@@ -433,6 +435,11 @@ async function generateStorySegmentWithRetries(
 export const createStory = async (preferences: StoryPreferences): Promise<string> => {
   console.log('[createStory] called with preferences:', preferences);
   try {
+    const user = auth.currentUser;
+    if (!user) {
+      throw new Error('User must be logged in to create a story');
+    }
+
     console.log('[createStory] generating story segment...');
     const initial = await generateStorySegmentWithRetries(preferences, [], undefined, 0);
     console.log('[createStory] story segment generated:', initial);
@@ -459,6 +466,7 @@ export const createStory = async (preferences: StoryPreferences): Promise<string
 
     const now = new Date();
     const story: Omit<Story, 'id'> = {
+      userId: user.uid,
       preferences,
       segments: [initialSegment],
       currentSegmentIndex: 0,
@@ -533,4 +541,21 @@ export const makeChoice = async (
     segments: [...story.segments, nextSegment],
     currentSegmentIndex: story.currentSegmentIndex + 1
   });
+};
+
+// Add this new function to fetch user's stories
+export const getUserStories = async (): Promise<Story[]> => {
+  const user = auth.currentUser;
+  if (!user) {
+    throw new Error('User must be logged in to fetch stories');
+  }
+
+  const storiesRef = collection(db, 'stories');
+  const q = query(storiesRef, where('userId', '==', user.uid), orderBy('createdAt', 'desc'));
+  const querySnapshot = await getDocs(q);
+  
+  return querySnapshot.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data()
+  })) as Story[];
 }; 

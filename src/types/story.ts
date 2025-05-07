@@ -23,6 +23,7 @@ export interface StorySegment {
 
 export interface Story {
   id: string;
+  userId: string;
   preferences: StoryPreferences;
   segments: StorySegment[];
   currentSegmentIndex: number;
