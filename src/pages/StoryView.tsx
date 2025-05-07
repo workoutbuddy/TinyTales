@@ -174,6 +174,18 @@ export const StoryView = () => {
   let choices = currentSegment.choices;
   let contextQuestion = '';
 
+  // Use choices from rawModelOutputs if available and non-empty
+  if (
+    rawModelOutputs &&
+    rawModelOutputs.length > 0 &&
+    Array.isArray(rawModelOutputs[0].choices) &&
+    rawModelOutputs[0].choices.length > 0
+  ) {
+    choices = rawModelOutputs[0].choices.map((c: any) =>
+      typeof c === 'string' ? { text: c } : c
+    );
+  }
+
   // Add logging for debugging choices
   console.log('UI: currentSegment.choices:', choices);
   if (Array.isArray(choices)) {
