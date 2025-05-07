@@ -349,7 +349,7 @@ export const StoryView = () => {
                           whiteSpace="normal"
                           textAlign="left"
                         >
-                          {choice.text}
+                          {typeof choice.text === 'string' ? choice.text : 'Continue the story'}
                         </Button>
                       ))
                     )
