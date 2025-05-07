@@ -80,15 +80,6 @@ export const StoryView = () => {
     });
   }, [story]);
 
-  // Detect end of story (no choices or only 'The End')
-  useEffect(() => {
-    if (story && story.segments[story.currentSegmentIndex].choices && (story.segments[story.currentSegmentIndex].choices.length === 0 || (story.segments[story.currentSegmentIndex].choices.length === 1 && story.segments[story.currentSegmentIndex].choices[0].text === 'The End'))) {
-      setEndModalOpen(true);
-    } else {
-      setEndModalOpen(false);
-    }
-  }, [story]);
-
   const loadStory = async () => {
     if (!storyId) return;
     try {
@@ -298,7 +289,16 @@ export const StoryView = () => {
                   </Text>
                 )}
                 <VStack spacing={4} align="stretch" w="100%">
-                  {choices && choices.length > 0 ? (
+                  {choices && choices.length === 1 && choices[0].text === 'The End' ? (
+                    <Button
+                      colorScheme="brand"
+                      size="lg"
+                      w="100%"
+                      onClick={() => setEndModalOpen(true)}
+                    >
+                      The End
+                    </Button>
+                  ) : choices && choices.length > 0 ? (
                     choices.map((choice, index) => (
                       <Button
                         key={index}
