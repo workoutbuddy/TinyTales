@@ -70,11 +70,31 @@ function extractStoryAndChoices(segment: any) {
   return { text: storyText, choices, contextQuestion };
 }
 
+async function generateStorySegmentWithRetries(preferences, previousSegments, lastChoice, pageIndex, maxRetries = 3) {
+  let attempt = 0;
+  let result;
+  while (attempt < maxRetries) {
+    result = await generateStorySegment(preferences, previousSegments, lastChoice);
+    // Check if we have two valid choices
+    let validChoices = Array.isArray(result.choices) && result.choices.length === 2 && result.choices.every(c => c && c.length > 0);
+    if (validChoices) return result;
+    attempt++;
+  }
+  // Fallbacks only if all retries fail
+  if (pageIndex === 0) {
+    return { text: result.text, choices: ["Do something brave", "Do something silly"] };
+  } else if (pageIndex === 1) {
+    return { text: result.text, choices: ["Continue the adventure", "Take a different path"] };
+  } else {
+    return { text: result.text, choices: [] };
+  }
+}
+
 export const createStory = async (preferences: StoryPreferences): Promise<string> => {
   console.log('[createStory] called with preferences:', preferences);
   try {
     console.log('[createStory] generating story segment...');
-    const initial = await generateStorySegment(preferences, []);
+    const initial = await generateStorySegmentWithRetries(preferences, [], undefined, 0);
     console.log('[createStory] story segment generated:', initial);
 
     let illustration = '';
@@ -86,14 +106,11 @@ export const createStory = async (preferences: StoryPreferences): Promise<string
 
     const extracted = extractStoryAndChoices(initial);
     const initialSegment: StorySegment = {
-      text: extracted.text || '', // Only the story string, never JSON
+      text: extracted.text || '',
       illustration: illustration || '',
       choices: Array.isArray(extracted.choices)
         ? extracted.choices.map((c: string) => ({ text: c }))
-        : [
-            { text: 'Do something brave' },
-            { text: 'Do something silly' }
-          ]
+        : []
     };
     console.log('[createStory] initialSegment:', initialSegment);
 
@@ -136,10 +153,11 @@ export const makeChoice = async (
   const currentSegment = story.segments[story.currentSegmentIndex];
   const choice = currentSegment.choices[choiceIndex];
 
-  const next = await generateStorySegment(
+  const next = await generateStorySegmentWithRetries(
     story.preferences,
     story.segments.map(s => s.text),
-    choice.text
+    choice.text,
+    story.currentSegmentIndex + 1
   );
 
   let illustration = '';
@@ -148,20 +166,16 @@ export const makeChoice = async (
   }
 
   const extracted = extractStoryAndChoices(next);
-  // Ensure storyText is never a JSON string
   let storyText = extracted.text;
   if (typeof storyText === 'string' && storyText.trim().startsWith('{')) {
     storyText = 'A magical story unfolds...';
   }
   const nextSegment: StorySegment = {
-    text: storyText || '', // Only the story string, never JSON
+    text: storyText || '',
     illustration: illustration || '',
     choices: Array.isArray(extracted.choices)
       ? extracted.choices.map((c: string) => ({ text: c }))
-      : [
-          { text: 'Do something brave' },
-          { text: 'Do something silly' }
-        ]
+      : []
   };
 
   await updateDoc(doc(db, 'stories', storyId), {
