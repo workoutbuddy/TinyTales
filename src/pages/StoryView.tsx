@@ -217,9 +217,9 @@ export const StoryView = () => {
       ];
     }
   } else if (!choices || choices.length === 0) {
+    // If there are no choices, it's the end of the story
     choices = [
-      { text: 'Do something brave' },
-      { text: 'Do something silly' }
+      { text: 'The End' }
     ];
   }
 
