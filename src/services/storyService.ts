@@ -255,7 +255,7 @@ function extractStoryAndChoices(segment: any) {
       .trim();
 
     // If choices are not valid, try to extract them from the original text
-    if (!Array.isArray(choices) || choices.length !== 2) {
+  if (!Array.isArray(choices) || choices.length !== 2) {
       const extracted = extractChoicesFromText(segment.text);
       if (extracted.length === 2) {
         choices = extracted;
@@ -473,7 +473,8 @@ export const createStory = async (preferences: StoryPreferences): Promise<string
       createdAt: {
         seconds: Math.floor(now.getTime() / 1000),
         nanoseconds: (now.getTime() % 1000) * 1000000
-      }
+      },
+      status: 'active',
     };
 
     console.log('[createStory] adding story to Firestore...');
@@ -537,10 +538,28 @@ export const makeChoice = async (
   };
   console.log('[makeChoice] nextSegment:', nextSegment);
 
+  // Determine if the story has ended (no choices left)
+  const isEnded = !nextSegment.choices || nextSegment.choices.length === 0;
+
+  // If ended, store the ending text (last segment's text)
+  const ending = isEnded ? nextSegment.text : undefined;
+
   await updateDoc(doc(db, 'stories', storyId), {
     segments: [...story.segments, nextSegment],
-    currentSegmentIndex: story.currentSegmentIndex + 1
+    currentSegmentIndex: story.currentSegmentIndex + 1,
+    status: isEnded ? 'ended' : 'active',
+    ...(isEnded && { ending }),
   });
+
+  // --- LOGGING: Show raw AI response and choices for debugging endings ---
+  console.log('[makeChoice][AI rawModelOutputs]:', JSON.stringify(next.rawModelOutputs, null, 2));
+  console.log('[makeChoice][Extracted choices]:', JSON.stringify(extracted.choices, null, 2));
+  // --- END LOGGING ---
+
+  // Commenting out old debug logs
+  // console.log('[makeChoice] rawModelOutputs:', next.rawModelOutputs);
+  // console.log('[makeChoice] extracted choices:', extracted.choices);
+  // console.log('[makeChoice] nextSegment:', nextSegment);
 };
 
 // Add this new function to fetch user's stories

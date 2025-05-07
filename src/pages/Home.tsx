@@ -15,7 +15,7 @@ import {
   Center
 } from '@chakra-ui/react';
 import { useNavigate } from 'react-router-dom';
-import { getUserStories } from '../services/storyService';
+import { getUserStories, createStory } from '../services/storyService';
 import { Story } from '../types/story';
 import Background from '../components/common/Background';
 
@@ -47,6 +47,21 @@ export const Home = () => {
     fetchStories();
   }, [toast]);
 
+  const handleExploreOtherPath = async (preferences: Story["preferences"]) => {
+    try {
+      const newStoryId = await createStory(preferences);
+      navigate(`/story/${newStoryId}`);
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to start a new adventure. Please try again.',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+    }
+  };
+
   if (loading) {
     return (
       <Center h="100vh">
@@ -61,11 +76,11 @@ export const Home = () => {
       <Container maxW="container.xl" py={10}>
         <VStack spacing={8} align="stretch">
           <Box textAlign="center">
-            <Heading
-              as="h1"
+              <Heading
+                as="h1"
               size="2xl"
-              bgGradient="linear(to-r, brand.400, brand.600)"
-              bgClip="text"
+                bgGradient="linear(to-r, brand.400, brand.600)"
+                bgClip="text"
             >
               Your Stories
             </Heading>
@@ -74,10 +89,10 @@ export const Home = () => {
             </Text>
           </Box>
 
-          <Button
-            colorScheme="brand"
-            size="lg"
-            onClick={() => navigate('/story/new')}
+            <Button
+              colorScheme="brand"
+              size="lg"
+              onClick={() => navigate('/story/new')}
             alignSelf="center"
             px={8}
           >
@@ -100,8 +115,8 @@ export const Home = () => {
                   overflow="hidden"
                   boxShadow="md"
                   _hover={{ transform: 'translateY(-4px)', boxShadow: 'lg' }}
-                  transition="all 0.2s"
-                >
+              transition="all 0.2s"
+            >
                   <CardBody>
                     <VStack align="start" spacing={3}>
                       <Heading size="md">{story.preferences.setting}</Heading>
@@ -114,14 +129,30 @@ export const Home = () => {
                     </VStack>
                   </CardBody>
                   <CardFooter>
-                    <Button
-                      colorScheme="brand"
-                      variant="outline"
-                      w="full"
-                      onClick={() => navigate(`/story/${story.id}`)}
-                    >
-                      Continue Story
-                    </Button>
+                    {story.status === 'ended' && (
+                      <Text color="purple.500" fontWeight="bold" mb={2}>
+                        {story.ending ? story.ending : 'The End'}
+                      </Text>
+                    )}
+                    {story.status === 'ended' ? (
+                      <Button
+                        colorScheme="purple"
+                        variant="outline"
+                        w="full"
+                        onClick={() => handleExploreOtherPath(story.preferences)}
+                      >
+                        Explore Other Path
+                      </Button>
+                    ) : (
+                      <Button
+                        colorScheme="brand"
+                        variant="outline"
+                        w="full"
+                        onClick={() => navigate(`/story/${story.id}`)}
+                      >
+                        Continue Story
+            </Button>
+                    )}
                   </CardFooter>
                 </Card>
               ))}

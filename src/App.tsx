@@ -28,9 +28,9 @@ function App() {
   return (
     <ChakraProvider theme={theme as Theme}>
       <AuthProvider>
-        <Router>
+      <Router>
           <Navigation />
-          <Routes>
+        <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/" element={
               <ProtectedRoute>
@@ -47,10 +47,10 @@ function App() {
                 <StoryView />
               </ProtectedRoute>
             } />
-            <Route path="/story" element={<Navigate to="/" replace />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </Router>
+          <Route path="/story" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Router>
       </AuthProvider>
     </ChakraProvider>
   );

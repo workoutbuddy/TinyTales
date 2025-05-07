@@ -26,7 +26,7 @@ export const generateStorySegment = async (
     endingPrompt = 'This is the final segment. End the story with a happy conclusion. Do not provide any choices.';
   }
 
-  const systemPrompt = `You are a friendly narrator for children aged 4-9.
+  const systemPrompt = `You are a friendly narrator for children aged 4-9. 
     IMPORTANT: Your response MUST be a valid JSON object with EXACTLY this structure:
     {
       "story": "Your story text here without any JSON or formatting characters",

@@ -31,4 +31,6 @@ export interface Story {
     seconds: number;
     nanoseconds: number;
   };
+  status: 'active' | 'ended';
+  ending?: string;
 } 
