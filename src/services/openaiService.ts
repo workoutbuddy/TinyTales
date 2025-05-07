@@ -57,25 +57,18 @@ export const generateStorySegment = async (
   let storyText = '';
   let choices: string[] = [];
   try {
-    const content = JSON.parse(data.choices[0].message.content);
-    storyText = content.story;
-    choices = content.choices;
-  } catch (e) {
-    // Fallback: try to extract story from a stringified JSON
-    const raw = data.choices[0].message.content;
-    if (raw && raw.trim().startsWith('{')) {
-      try {
-        const content = JSON.parse(raw);
-        storyText = content.story || raw;
-        choices = content.choices || ["Continue the adventure", "Take a different path"];
-      } catch {
-        storyText = raw;
-        choices = ["Continue the adventure", "Take a different path"];
-      }
-    } else {
-      storyText = raw || 'Once upon a time...';
-      choices = ["Continue the adventure", "Take a different path"];
+    let content = JSON.parse(data.choices[0].message.content);
+    // If content is a stringified JSON, parse again
+    if (typeof content === 'string' && content.trim().startsWith('{')) {
+      content = JSON.parse(content);
     }
+    storyText = content.story || data.choices[0].message.content;
+    choices = content.choices || ["Continue the adventure", "Take a different path"];
+  } catch (e) {
+    // Fallback: treat the whole response as text, and use generic choices
+    const raw = data.choices[0].message.content;
+    storyText = raw || 'Once upon a time...';
+    choices = ["Continue the adventure", "Take a different path"];
   }
   return { text: storyText, choices };
 };
