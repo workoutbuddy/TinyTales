@@ -19,12 +19,18 @@ export const generateStorySegment = async (
   const isFinalSegment = previousSegments.length >= 2;  // 3rd page
   const mustEndNow = previousSegments.length >= 3;      // 4th page
 
+  let endingPrompt = '';
+  if (mustEndNow) {
+    endingPrompt = 'This story must end now. Provide a final, happy ending. Do not provide any choices.';
+  } else if (isFinalSegment) {
+    endingPrompt = 'This is the final segment. End the story with a happy conclusion. Do not provide any choices.';
+  }
+
   const systemPrompt = `You are a friendly narrator for children aged 4-9. 
-    ${isFinalSegment ? 'This is the final segment. Create a satisfying ending.' : 'Generate a short, engaging segment.'}
-    ${mustEndNow ? 'The story MUST end now with a happy conclusion.' : ''}
+    ${endingPrompt || 'Generate a short, engaging segment.'}
     The story should be set in ${preferences.setting} and feature ${preferences.childName} and their favorite animal, ${preferences.favoriteAnimal}. 
     ${characterText} ${lessonText} 
-    ${!isFinalSegment ? 'End with "What should happen next? Choose the first path or the second path."' : ''}
+    ${!endingPrompt ? 'End with "What should happen next? Choose the first path or the second path."' : ''}
     Format your response as JSON with "story" and "choices" fields.`;
 
   const response = await fetch(`${OPENAI_API_URL}/chat/completions`, {
@@ -50,7 +56,7 @@ export const generateStorySegment = async (
         }] : []),
         {
           role: 'user',
-          content: isFinalSegment 
+          content: endingPrompt
             ? 'Create a satisfying ending for the story.'
             : 'Continue the story with a new segment.'
         }
@@ -76,21 +82,28 @@ export const generateStorySegment = async (
     if (typeof content === 'string' && content.trim().startsWith('{')) {
       const parsed = JSON.parse(content);
       storyText = parsed.story || content;
-      choices = isFinalSegment 
-        ? ["The End"] 
-        : ["First path", "Second path"];
+      // If this is the final segment, do not provide choices
+      if (mustEndNow || isFinalSegment) {
+        choices = [];
+      } else {
+        choices = parsed.choices || ["Continue the adventure", "Take a different path"];
+      }
     } else {
       storyText = content;
-      choices = isFinalSegment 
-        ? ["The End"] 
-        : ["First path", "Second path"];
+      if (mustEndNow || isFinalSegment) {
+        choices = [];
+      } else {
+        choices = ["Continue the adventure", "Take a different path"];
+      }
     }
   } catch (e) {
     console.error('Error parsing story:', e);
     storyText = data.choices[0].message.content;
-    choices = isFinalSegment 
-      ? ["The End"] 
-      : ["First path", "Second path"];
+    if (mustEndNow || isFinalSegment) {
+      choices = [];
+    } else {
+      choices = ["Continue the adventure", "Take a different path"];
+    }
   }
 
   return { text: storyText, choices };

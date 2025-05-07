@@ -11,7 +11,13 @@ import {
   HStack,
   Image,
   Skeleton,
-  Fade
+  Fade,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter
 } from '@chakra-ui/react';
 import { keyframes } from '@emotion/react';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -35,6 +41,7 @@ export const StoryView = () => {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isImageLoading, setIsImageLoading] = useState(true);
   const nextSegmentsCache = useRef<{ [key: string]: { text: string; illustration: string; choices: any[] } }>({});
+  const [isEndModalOpen, setEndModalOpen] = useState(false);
 
   useEffect(() => {
     if (storyId) {
@@ -71,6 +78,15 @@ export const StoryView = () => {
         }
       }
     });
+  }, [story]);
+
+  // Detect end of story (no choices or only 'The End')
+  useEffect(() => {
+    if (story && story.segments[story.currentSegmentIndex].choices && (story.segments[story.currentSegmentIndex].choices.length === 0 || (story.segments[story.currentSegmentIndex].choices.length === 1 && story.segments[story.currentSegmentIndex].choices[0].text === 'The End'))) {
+      setEndModalOpen(true);
+    } else {
+      setEndModalOpen(false);
+    }
   }, [story]);
 
   const loadStory = async () => {
@@ -292,6 +308,21 @@ export const StoryView = () => {
           </Fade>
         </VStack>
       </Container>
+      <Modal isOpen={isEndModalOpen} onClose={() => {}} isCentered>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Storytime Complete!</ModalHeader>
+          <ModalBody>
+            <Text fontSize="lg" mb={4}>
+              {`Have a good night${story?.preferences.childName ? ', ' + story.preferences.childName : ''}!`}
+            </Text>
+            <Text fontSize="md">Would you like to go on another adventure?</Text>
+          </ModalBody>
+          <ModalFooter>
+            <Button colorScheme="brand" onClick={() => navigate('/')}>Start a New Adventure</Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
     </>
   );
 }; 

@@ -36,8 +36,8 @@ function extractStoryAndChoices(segment: any) {
         ? parsed.choices
         : ["Continue the adventure", "Take a different path"];
     } else {
-      // Only fallback if parsing fails
-      storyText = 'A magical story unfolds...';
+      // Use the raw text as fallback, not just a generic message
+      storyText = typeof segment.text === 'string' ? segment.text : 'A magical story unfolds...';
       choices = ["Continue the adventure", "Take a different path"];
     }
   }
