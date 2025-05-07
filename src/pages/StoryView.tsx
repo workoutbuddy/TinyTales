@@ -186,6 +186,13 @@ export const StoryView = () => {
     );
   }
 
+  // Remove all fallback/backup choices. If no choices, show only 'The End'.
+  if (!choices || choices.length === 0) {
+    choices = [
+      { text: 'The End' }
+    ];
+  }
+
   // Add logging for debugging choices
   console.log('UI: currentSegment.choices:', choices);
   if (Array.isArray(choices)) {
