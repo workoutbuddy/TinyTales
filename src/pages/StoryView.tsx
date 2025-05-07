@@ -42,6 +42,8 @@ export const StoryView = () => {
   const [isImageLoading, setIsImageLoading] = useState(true);
   const nextSegmentsCache = useRef<{ [key: string]: { text: string; illustration: string; choices: any[] } }>({});
   const [isEndModalOpen, setEndModalOpen] = useState(false);
+  const [error, setError] = useState('');
+  const [rawModelOutputs, setRawModelOutputs] = useState<any[]>([]);
 
   useEffect(() => {
     if (storyId) {
@@ -78,6 +80,14 @@ export const StoryView = () => {
         }
       }
     });
+  }, [story]);
+
+  useEffect(() => {
+    if (!story) return;
+    const currentSegment = story.segments[story.currentSegmentIndex];
+    if (currentSegment.rawModelOutputs) {
+      setRawModelOutputs(currentSegment.rawModelOutputs);
+    }
   }, [story]);
 
   const loadStory = async () => {
@@ -169,6 +179,7 @@ export const StoryView = () => {
   if (Array.isArray(choices)) {
     choices.forEach((c, i) => console.log(`UI: choice[${i}]:`, c.text));
   }
+  console.log('UI: rawModelOutputs:', rawModelOutputs);
 
   if (typeof storyText === 'string' && storyText.trim().startsWith('{')) {
     try {
@@ -282,6 +293,26 @@ export const StoryView = () => {
                 >
                   {storyText}
                 </Text>
+                {/* Show raw model output for debugging */}
+                {rawModelOutputs && rawModelOutputs.length > 0 && (
+                  <Box bg="gray.50" borderRadius="md" p={2} mb={4} fontSize="xs" color="gray.500" maxH="120px" overflowY="auto">
+                    <pre>{JSON.stringify(rawModelOutputs, null, 2)}</pre>
+                  </Box>
+                )}
+                {/* Show loading spinner while waiting for choices */}
+                {isLoading && (
+                  <VStack py={8}>
+                    <Text color="brand.500" fontWeight="bold">Generating options…</Text>
+                    <Box className="spinner" w={8} h={8} borderWidth={2} borderRadius="full" borderColor="brand.500" borderTopColor="transparent" animation="spin 1s linear infinite" />
+                  </VStack>
+                )}
+                {/* Show error and Try Again button if all retries fail */}
+                {error && (
+                  <VStack py={8}>
+                    <Text color="red.500" fontWeight="bold">{error}</Text>
+                    <Button colorScheme="brand" onClick={() => window.location.reload()}>Try Again</Button>
+                  </VStack>
+                )}
                 {/* Show context question above buttons if present */}
                 {contextQuestion && (
                   <Text fontSize="lg" color="brand.500" fontWeight="semibold" mb={2} textAlign="center">
@@ -289,48 +320,39 @@ export const StoryView = () => {
                   </Text>
                 )}
                 <VStack spacing={4} align="stretch" w="100%">
-                  {choices && choices.length === 1 && choices[0].text === 'The End' ? (
-                    <Button
-                      colorScheme="brand"
-                      size="lg"
-                      w="100%"
-                      onClick={() => setEndModalOpen(true)}
-                    >
-                      The End
-                    </Button>
-                  ) : choices && choices.length > 0 ? (
-                    choices.map((choice, index) => (
+                  {/* Only show choices if not loading, not error, and not last page */}
+                  {!isLoading && !error && choices && choices.length > 0 && (
+                    choices.length === 1 && choices[0].text === 'The End' ? (
                       <Button
-                        key={index}
                         colorScheme="brand"
-                        variant="outline"
-                        w="100%"
                         size="lg"
-                        onClick={() => handleChoice(index)}
-                        isLoading={isLoading}
-                        _hover={{
-                          transform: 'scale(1.02)',
-                          bg: 'brand.50',
-                        }}
-                        transition="all 0.2s"
-                        whiteSpace="normal"
-                        textAlign="left"
+                        w="100%"
+                        onClick={() => setEndModalOpen(true)}
                       >
-                        {choice.text}
+                        The End
                       </Button>
-                    ))
-                  ) : (
-                    <Button
-                      colorScheme="gray"
-                      onClick={() => navigate('/')}
-                      _hover={{
-                        transform: 'scale(1.05)',
-                        bg: 'gray.200',
-                      }}
-                      transition="all 0.2s"
-                    >
-                      Start New Story
-                    </Button>
+                    ) : (
+                      choices.map((choice, index) => (
+                        <Button
+                          key={index}
+                          colorScheme="brand"
+                          variant="outline"
+                          w="100%"
+                          size="lg"
+                          onClick={() => handleChoice(index)}
+                          isLoading={isLoading}
+                          _hover={{
+                            transform: 'scale(1.02)',
+                            bg: 'brand.50',
+                          }}
+                          transition="all 0.2s"
+                          whiteSpace="normal"
+                          textAlign="left"
+                        >
+                          {choice.text}
+                        </Button>
+                      ))
+                    )
                   )}
                 </VStack>
               </VStack>
