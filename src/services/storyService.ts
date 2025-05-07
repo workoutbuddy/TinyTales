@@ -29,6 +29,10 @@ function extractStoryAndChoices(segment: any) {
       // fallback: use as is
     }
   }
+  // Ensure storyText is never a JSON string
+  if (typeof storyText === 'string' && storyText.trim().startsWith('{')) {
+    storyText = 'A magical story unfolds...';
+  }
   return { text: storyText, choices };
 }
 
@@ -45,7 +49,7 @@ export const createStory = async (preferences: StoryPreferences): Promise<string
 
     const extracted = extractStoryAndChoices(initial);
     const initialSegment: StorySegment = {
-      text: extracted.text || '',
+      text: extracted.text || '', // Only the story string, never JSON
       illustration: illustration || '',
       choices: Array.isArray(extracted.choices)
         ? extracted.choices.map((c: string) => ({ text: c }))
@@ -102,9 +106,14 @@ export const makeChoice = async (
   );
 
   const extracted = extractStoryAndChoices(next);
+  // Ensure storyText is never a JSON string
+  let storyText = extracted.text;
+  if (typeof storyText === 'string' && storyText.trim().startsWith('{')) {
+    storyText = 'A magical story unfolds...';
+  }
   const nextSegment: StorySegment = {
-    text: extracted.text || '',
-    illustration: (await generateIllustration(extracted.text)) || '',
+    text: storyText || '', // Only the story string, never JSON
+    illustration: (await generateIllustration(storyText)) || '',
     choices: Array.isArray(extracted.choices)
       ? extracted.choices.map((c: string) => ({ text: c }))
       : [
