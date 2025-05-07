@@ -171,7 +171,7 @@ export const StoryView = () => {
 
   // Robustly extract story text
   let storyText = currentSegment.text;
-  let choices = currentSegment.choices;
+  let choices: { text: string }[] = [];
 
   // Use choices from rawModelOutputs if available and non-empty
   if (
@@ -183,6 +183,19 @@ export const StoryView = () => {
     choices = rawModelOutputs[0].choices.map((c: any) =>
       typeof c === 'string' ? { text: c } : c
     );
+  } else if (
+    Array.isArray(currentSegment.choices) &&
+    currentSegment.choices.length > 0 &&
+    !currentSegment.choices.some(c =>
+      typeof c.text === 'string' &&
+      (c.text.toLowerCase().includes('enter the magical world') ||
+       c.text.toLowerCase().includes('continue the story') ||
+       c.text.toLowerCase().includes('meet your new friends') ||
+       c.text.toLowerCase().includes('do something brave') ||
+       c.text.toLowerCase().includes('do something silly'))
+    )
+  ) {
+    choices = currentSegment.choices;
   }
 
   // If storyText is a JSON string, extract the story or text field (never choices)
@@ -195,7 +208,7 @@ export const StoryView = () => {
     }
   }
 
-  // If no choices, show only 'The End' button
+  // If no valid choices, show only 'The End' button
   if (!choices || choices.length === 0) {
     choices = [{ text: 'The End' }];
   }
