@@ -30,7 +30,7 @@ export const generateStorySegment = async (
     ${endingPrompt || 'Generate a short, engaging segment.'}
     The story should be set in ${preferences.setting} and feature ${preferences.childName} and their favorite animal, ${preferences.favoriteAnimal}. 
     ${characterText} ${lessonText} 
-    ${!endingPrompt ? 'End with "What should happen next? Choose the first path or the second path."' : ''}
+    ${!endingPrompt ? 'At the end of each segment, provide two clear, actionable choices as an array, e.g. ["Explore the cave", "Climb the tree"]. End with a question or prompt for the next action.' : ''}
     Format your response as JSON with "story" and "choices" fields.`;
 
   const response = await fetch(`${OPENAI_API_URL}/chat/completions`, {

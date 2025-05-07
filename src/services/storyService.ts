@@ -30,6 +30,7 @@ function safeJsonParse(str: string) {
 function extractStoryAndChoices(segment: any) {
   let storyText = segment.text;
   let choices = segment.choices;
+  let contextQuestion = '';
   if (typeof storyText === 'string' && storyText.trim().startsWith('{')) {
     const parsed = safeJsonParse(storyText);
     if (parsed && parsed.story) {
@@ -37,21 +38,36 @@ function extractStoryAndChoices(segment: any) {
       if (Array.isArray(parsed.choices)) {
         choices = parsed.choices;
       } else if (typeof parsed.choices === 'string') {
-        // Try to split the string into two choices if possible
-        const splitChoices = parsed.choices.split(/\bor\b|\?|\./).map(s => s.trim()).filter(Boolean);
-        choices = splitChoices.length >= 2
-          ? splitChoices.slice(0, 2)
-          : ["Try something brave", "Try something silly"];
+        // Try to extract two options from the string
+        // e.g. "What should happen next? Choose the first path to the waterfall or the second path to the forest?"
+        const match = parsed.choices.match(/first path(?: to|:)? ([^.,;!?]+)[.,;!?]? or the second path(?: to|:)? ([^.,;!?]+)[.,;!?]?/i);
+        if (match) {
+          choices = [match[1].trim(), match[2].trim()];
+        } else {
+          // Try to split on ' or '
+          const split = parsed.choices.split(/ or /i);
+          if (split.length === 2) {
+            choices = [split[0].replace(/.*choose /i, '').trim(), split[1].replace(/\?$/, '').trim()];
+          } else {
+            contextQuestion = parsed.choices;
+            choices = ["Do something brave", "Do something silly"];
+          }
+        }
       } else {
-        choices = ["Try something brave", "Try something silly"];
+        choices = ["Do something brave", "Do something silly"];
       }
     } else {
       // Use the raw text as fallback, not just a generic message
       storyText = typeof segment.text === 'string' ? segment.text : 'A magical story unfolds...';
-      choices = ["Try something brave", "Try something silly"];
+      choices = ["Do something brave", "Do something silly"];
     }
   }
-  return { text: storyText, choices };
+  // Always return choices as array of objects for UI safety
+  if (!Array.isArray(choices) || choices.length === 0) {
+    choices = ["Do something brave", "Do something silly"];
+  }
+  choices = choices.map((c: any) => typeof c === 'string' ? { text: c } : c);
+  return { text: storyText, choices, contextQuestion };
 }
 
 export const createStory = async (preferences: StoryPreferences): Promise<string> => {
@@ -152,4 +168,5 @@ export const makeChoice = async (
     segments: [...story.segments, nextSegment],
     currentSegmentIndex: story.currentSegmentIndex + 1
   });
+}; 
 }; 
