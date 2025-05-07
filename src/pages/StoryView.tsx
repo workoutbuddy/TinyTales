@@ -151,6 +151,19 @@ export const StoryView = () => {
   const currentSegment = story.segments[story.currentSegmentIndex];
   console.log('currentSegment', currentSegment);
 
+  // Parse story and choices if text is a JSON string
+  let storyText = currentSegment.text;
+  let choices = currentSegment.choices;
+  if (typeof storyText === 'string' && storyText.trim().startsWith('{')) {
+    try {
+      const parsed = JSON.parse(storyText);
+      if (parsed.story) storyText = parsed.story;
+      if (parsed.choices) choices = parsed.choices.map((c: string) => ({ text: c }));
+    } catch {
+      // fallback: use as is
+    }
+  }
+
   return (
     <>
       <Background />
@@ -215,10 +228,10 @@ export const StoryView = () => {
                   lineHeight="tall"
                   animation={`${fadeIn} 0.5s ease-out`}
                 >
-                  {currentSegment.text}
+                  {storyText}
                 </Text>
                 <VStack spacing={4}>
-                  {currentSegment.choices.map((choice, index) => (
+                  {choices.map((choice, index) => (
                     <Button
                       key={index}
                       colorScheme="brand"
