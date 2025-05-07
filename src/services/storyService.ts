@@ -32,13 +32,21 @@ function extractStoryAndChoices(segment: any) {
     const parsed = safeJsonParse(storyText);
     if (parsed && parsed.story) {
       storyText = parsed.story;
-      choices = Array.isArray(parsed.choices)
-        ? parsed.choices
-        : ["Continue the adventure", "Take a different path"];
+      if (Array.isArray(parsed.choices)) {
+        choices = parsed.choices;
+      } else if (typeof parsed.choices === 'string') {
+        // Try to split the string into two choices if possible
+        const splitChoices = parsed.choices.split(/\bor\b|\?|\./).map(s => s.trim()).filter(Boolean);
+        choices = splitChoices.length >= 2
+          ? splitChoices.slice(0, 2)
+          : ["Try something brave", "Try something silly"];
+      } else {
+        choices = ["Try something brave", "Try something silly"];
+      }
     } else {
       // Use the raw text as fallback, not just a generic message
       storyText = typeof segment.text === 'string' ? segment.text : 'A magical story unfolds...';
-      choices = ["Continue the adventure", "Take a different path"];
+      choices = ["Try something brave", "Try something silly"];
     }
   }
   return { text: storyText, choices };

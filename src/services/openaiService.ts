@@ -40,7 +40,7 @@ export const generateStorySegment = async (
       'Authorization': `Bearer ${OPENAI_API_KEY}`
     },
     body: JSON.stringify({
-      model: 'gpt-4',
+      model: 'gpt-3.5-turbo',
       messages: [
         {
           role: 'system',
@@ -56,7 +56,7 @@ export const generateStorySegment = async (
         }] : []),
         {
           role: 'user',
-          content: endingPrompt
+          content: isFinalSegment 
             ? 'Create a satisfying ending for the story.'
             : 'Continue the story with a new segment.'
         }
