@@ -169,10 +169,9 @@ export const StoryView = () => {
   const currentSegment = story.segments[story.currentSegmentIndex];
   console.log('currentSegment', currentSegment);
 
-  // Always robustly extract story and choices if text is a JSON string
+  // Robustly extract story text
   let storyText = currentSegment.text;
   let choices = currentSegment.choices;
-  let contextQuestion = '';
 
   // Use choices from rawModelOutputs if available and non-empty
   if (
@@ -186,11 +185,19 @@ export const StoryView = () => {
     );
   }
 
-  // Remove all fallback/backup choices. If no choices, show only 'The End'.
+  // If storyText is a JSON string, extract the story or text field (never choices)
+  if (typeof storyText === 'string' && storyText.trim().startsWith('{')) {
+    try {
+      const parsed = JSON.parse(storyText);
+      storyText = parsed.story || parsed.text || 'A magical story unfolds...';
+    } catch {
+      // If parsing fails, just use the string as-is
+    }
+  }
+
+  // If no choices, show only 'The End' button
   if (!choices || choices.length === 0) {
-    choices = [
-      { text: 'The End' }
-    ];
+    choices = [{ text: 'The End' }];
   }
 
   // Add logging for debugging choices
@@ -199,48 +206,6 @@ export const StoryView = () => {
     choices.forEach((c, i) => console.log(`UI: choice[${i}]:`, c.text));
   }
   console.log('UI: rawModelOutputs:', rawModelOutputs);
-
-  if (typeof storyText === 'string' && storyText.trim().startsWith('{')) {
-    try {
-      const parsed = JSON.parse(storyText);
-      storyText = parsed.story || 'A magical story unfolds...';
-      if (Array.isArray(parsed.choices)) {
-        choices = parsed.choices.map((c: string) => ({ text: c }));
-      } else if (typeof parsed.choices === 'string') {
-        // Try to extract two options from the string
-        const match = parsed.choices.match(/Should (.+?) or (.+?)\?/i);
-        if (match) {
-          choices = [
-            { text: match[1].trim() },
-            { text: match[2].trim() }
-          ];
-        } else {
-          contextQuestion = parsed.choices;
-          choices = [
-            { text: 'Do something brave' },
-            { text: 'Do something silly' }
-          ];
-        }
-      } else {
-        choices = [
-          { text: 'Do something brave' },
-          { text: 'Do something silly' }
-        ];
-      }
-    } catch {
-      // Only fallback if parsing fails
-      storyText = 'A magical story unfolds...';
-      choices = [
-        { text: 'Do something brave' },
-        { text: 'Do something silly' }
-      ];
-    }
-  } else if (!choices || choices.length === 0) {
-    // If there are no choices, it's the end of the story
-    choices = [
-      { text: 'The End' }
-    ];
-  }
 
   return (
     <>
@@ -331,12 +296,6 @@ export const StoryView = () => {
                     <Text color="red.500" fontWeight="bold">{error}</Text>
                     <Button colorScheme="brand" onClick={() => window.location.reload()}>Try Again</Button>
                   </VStack>
-                )}
-                {/* Show context question above buttons if present */}
-                {contextQuestion && (
-                  <Text fontSize="lg" color="brand.500" fontWeight="semibold" mb={2} textAlign="center">
-                    {contextQuestion}
-                  </Text>
                 )}
                 <VStack spacing={4} align="stretch" w="100%">
                   {/* Only show choices if not loading, not error, and not last page */}
