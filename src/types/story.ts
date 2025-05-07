@@ -1,5 +1,9 @@
 export interface StoryPreferences {
-  childName?: string;
+  childName: string;
+  favoriteAnimal: string;
+  setting: string;
+  characters: string[];
+  lifeLesson: string;
   age?: number;
   interests?: string[];
   theme?: string;

@@ -103,14 +103,14 @@ function isGenericChoice(choice: string): boolean {
 }
 
 // Function to validate and clean choices
-function validateChoices(choices: any[]): { text: string }[] {
+function validateChoices(choices: any[]): StoryChoice[] {
   if (!Array.isArray(choices)) return [];
   
-  return choices
+  const validChoices = choices
     .filter(c => {
-      if (!c || typeof c !== 'string') return false;
+      if (!c || typeof c.text !== 'string') return false;
       
-      const choice = c.trim();
+      const choice = c.text.trim();
       
       // Basic validation
       if (isGenericChoice(choice)) return false;
@@ -119,14 +119,24 @@ function validateChoices(choices: any[]): { text: string }[] {
       if (choices.length === 2) {
         const otherChoice = choices.find(oc => oc !== c);
         if (otherChoice) {
-          const lengthDiff = Math.abs(choice.length - otherChoice.length);
+          const lengthDiff = Math.abs(choice.length - otherChoice.text.length);
           if (lengthDiff > 30) return false; // Too different in length
         }
       }
       
       return true;
     })
-    .map(c => ({ text: c.trim() }));
+    .map(c => ({ text: c.text.trim() }));
+
+  // If we don't have exactly 2 valid choices, return fallbacks
+  if (validChoices.length !== 2) {
+    return [
+      { text: 'Explore the magical world' },
+      { text: 'Meet the friendly creatures' }
+    ];
+  }
+
+  return validChoices;
 }
 
 function safeJsonParse(str: string) {
@@ -143,42 +153,42 @@ function extractStoryAndChoices(segment: any) {
   let storyText = segment.text;
   let choices = segment.choices;
   let contextQuestion = '';
+
+  // If the text is a JSON string, try to parse it
   if (typeof storyText === 'string' && storyText.trim().startsWith('{')) {
-    const parsed = safeJsonParse(storyText);
-    if (parsed && parsed.story) {
-      storyText = parsed.story;
-      if (Array.isArray(parsed.choices)) {
-        choices = parsed.choices;
-      } else if (typeof parsed.choices === 'string') {
-        // Try to extract two options from the string
-        // e.g. "What should happen next? Choose the first path to the waterfall or the second path to the forest?"
-        const match = parsed.choices.match(/first path(?: to|:)? ([^.,;!?]+)[.,;!?]? or the second path(?: to|:)? ([^.,;!?]+)[.,;!?]?/i);
-        if (match) {
-          choices = [match[1].trim(), match[2].trim()];
-        } else {
-          // Try to split on ' or '
-          const split = parsed.choices.split(/ or /i);
-          if (split.length === 2) {
-            choices = [split[0].replace(/.*choose /i, '').trim(), split[1].replace(/\?$/, '').trim()];
-          } else {
-            contextQuestion = parsed.choices;
-            choices = ["Do something brave", "Do something silly"];
-          }
+    try {
+      const parsed = safeJsonParse(storyText);
+      if (parsed && parsed.story) {
+        storyText = parsed.story;
+        if (Array.isArray(parsed.choices)) {
+          choices = parsed.choices;
         }
-      } else {
-        choices = ["Do something brave", "Do something silly"];
       }
-    } else {
-      // Use the raw text as fallback, not just a generic message
-      storyText = typeof segment.text === 'string' ? segment.text : 'A magical story unfolds...';
-      choices = ["Do something brave", "Do something silly"];
+    } catch (error) {
+      console.error('Failed to parse story JSON:', error);
     }
   }
-  // Always return choices as array of objects for UI safety
-  if (!Array.isArray(choices) || choices.length === 0) {
-    choices = ["Do something brave", "Do something silly"];
+
+  // Ensure choices is an array of objects with text property
+  if (Array.isArray(choices)) {
+    choices = choices.map(choice => {
+      if (typeof choice === 'string') {
+        return { text: choice };
+      } else if (typeof choice === 'object' && choice !== null) {
+        return { text: choice.text || choice.toString() };
+      }
+      return { text: 'Continue the story' };
+    });
+  } else {
+    choices = [];
   }
-  choices = choices.map((c: any) => typeof c === 'string' ? { text: c } : c);
+
+  // If no valid choices were found, generate context-aware fallbacks
+  if (choices.length !== 2) {
+    const fallbackChoices = generateFallbackChoices(storyText, 0);
+    choices = fallbackChoices;
+  }
+
   return { text: storyText, choices, contextQuestion };
 }
 
@@ -239,7 +249,18 @@ function generateFallbackChoices(storyContext: string, pageIndex: number): { tex
   return [];
 }
 
-async function generateStorySegmentWithRetries(preferences, previousSegments, lastChoice, pageIndex, maxRetries = 3) {
+async function generateStorySegmentWithRetries(
+  preferences: StoryPreferences,
+  previousSegments: string[],
+  lastChoice: string | undefined,
+  pageIndex: number,
+  maxRetries: number = 3
+): Promise<{
+  text: string;
+  choices: StoryChoice[];
+  rawModelOutputs: Array<{ text: string; choices: any[] }>;
+  isFallback?: boolean;
+}> {
   let attempt = 0;
   let result;
   let rawModelOutputs: Array<{ text: string; choices: any[] }> = [];
@@ -255,10 +276,14 @@ async function generateStorySegmentWithRetries(preferences, previousSegments, la
       const extracted = extractStoryAndChoices(result);
       const validChoices = validateChoices(extracted.choices);
 
+      // Log the validation results
+      console.log(`[RETRY ${attempt + 1}] Extracted choices:`, extracted.choices);
+      console.log(`[RETRY ${attempt + 1}] Valid choices:`, validChoices);
+
       if (validChoices.length === 2) {
         console.log(`[RETRY ${attempt + 1}] Valid choices found:`, validChoices);
         return { 
-          ...result, 
+          text: extracted.text,
           choices: validChoices,
           rawModelOutputs 
         };
