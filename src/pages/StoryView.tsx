@@ -211,34 +211,38 @@ export const StoryView = () => {
               }}
             >
               <VStack spacing={8} align="stretch">
-                <Skeleton isLoaded={!isImageLoading}>
-                  <Image
-                    src={currentSegment.illustration}
-                    alt="Story illustration"
-                    borderRadius="xl"
-                    onLoad={() => setIsImageLoading(false)}
-                    fallback={<Box h="300px" bg="gray.100" borderRadius="xl" />}
-                    transition="all 0.3s"
-                    _hover={{ transform: 'scale(1.02)' }}
-                  />
-                </Skeleton>
+                <Box mb={8}>
+                  {currentSegment.illustration && (
+                    <Image
+                      src={currentSegment.illustration}
+                      alt="Story illustration"
+                      borderRadius="lg"
+                      boxShadow="md"
+                      w="100%"
+                      maxH="400px"
+                      objectFit="cover"
+                      mb={4}
+                    />
+                  )}
+                </Box>
                 <Text
                   fontSize="xl"
                   whiteSpace="pre-wrap"
                   color="gray.700"
                   lineHeight="tall"
                   animation={`${fadeIn} 0.5s ease-out`}
+                  mb={8}
                 >
                   {storyText}
                 </Text>
-                <VStack spacing={4}>
+                <VStack spacing={4} align="stretch" w="100%">
                   {choices && choices.length > 0 ? (
                     choices.map((choice, index) => (
                       <Button
                         key={index}
                         colorScheme="brand"
                         variant="outline"
-                        w="full"
+                        w="100%"
                         size="lg"
                         onClick={() => handleChoice(index)}
                         isLoading={isLoading}
@@ -247,6 +251,8 @@ export const StoryView = () => {
                           bg: 'brand.50',
                         }}
                         transition="all 0.2s"
+                        whiteSpace="normal"
+                        textAlign="left"
                       >
                         {choice.text}
                       </Button>
