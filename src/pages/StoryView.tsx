@@ -173,6 +173,12 @@ export const StoryView = () => {
   let choices = currentSegment.choices;
   let contextQuestion = '';
 
+  // Add logging for debugging choices
+  console.log('UI: currentSegment.choices:', choices);
+  if (Array.isArray(choices)) {
+    choices.forEach((c, i) => console.log(`UI: choice[${i}]:`, c.text));
+  }
+
   if (typeof storyText === 'string' && storyText.trim().startsWith('{')) {
     try {
       const parsed = JSON.parse(storyText);

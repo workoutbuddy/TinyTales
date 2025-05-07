@@ -5,6 +5,8 @@ import { generateStorySegment, generateIllustration } from './openaiService';
 
 const SYSTEM_PROMPT = `You are a friendly narrator for children aged 4-9. Generate short, engaging, age-appropriate stories with two choices at the end.`;
 
+const SHOW_ILLUSTRATIONS = false; // Set to true to enable picture generation
+
 const cleanChoices = (choices: any) =>
   Array.isArray(choices)
     ? choices
@@ -59,9 +61,12 @@ export const createStory = async (preferences: StoryPreferences): Promise<string
     const initial = await generateStorySegment(preferences, []);
     console.log('[createStory] story segment generated:', initial);
 
-    console.log('[createStory] generating illustration...');
-    const illustration = await generateIllustration(initial.text);
-    console.log('[createStory] illustration generated:', illustration);
+    let illustration = '';
+    if (SHOW_ILLUSTRATIONS) {
+      console.log('[createStory] generating illustration...');
+      illustration = await generateIllustration(initial.text);
+      console.log('[createStory] illustration generated:', illustration);
+    }
 
     const extracted = extractStoryAndChoices(initial);
     const initialSegment: StorySegment = {
@@ -70,8 +75,8 @@ export const createStory = async (preferences: StoryPreferences): Promise<string
       choices: Array.isArray(extracted.choices)
         ? extracted.choices.map((c: string) => ({ text: c }))
         : [
-            { text: 'Continue the adventure' },
-            { text: 'Take a different path' }
+            { text: 'Do something brave' },
+            { text: 'Do something silly' }
           ]
     };
     console.log('[createStory] initialSegment:', initialSegment);
@@ -121,6 +126,11 @@ export const makeChoice = async (
     choice.text
   );
 
+  let illustration = '';
+  if (SHOW_ILLUSTRATIONS) {
+    illustration = await generateIllustration(next.text);
+  }
+
   const extracted = extractStoryAndChoices(next);
   // Ensure storyText is never a JSON string
   let storyText = extracted.text;
@@ -129,12 +139,12 @@ export const makeChoice = async (
   }
   const nextSegment: StorySegment = {
     text: storyText || '', // Only the story string, never JSON
-    illustration: (await generateIllustration(storyText)) || '',
+    illustration: illustration || '',
     choices: Array.isArray(extracted.choices)
       ? extracted.choices.map((c: string) => ({ text: c }))
       : [
-          { text: 'Continue the adventure' },
-          { text: 'Take a different path' }
+          { text: 'Do something brave' },
+          { text: 'Do something silly' }
         ]
   };
 
