@@ -31,6 +31,7 @@ export const createStory = async (preferences: StoryPreferences): Promise<string
       illustration: illustration || '',
       choices: cleanChoices(initial.choices)
     };
+    console.log('[createStory] initialSegment:', initialSegment);
 
     const story: Omit<Story, 'id'> = {
       preferences,

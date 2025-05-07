@@ -149,6 +149,7 @@ export const StoryView = () => {
   }
 
   const currentSegment = story.segments[story.currentSegmentIndex];
+  console.log('currentSegment', currentSegment);
 
   return (
     <>
