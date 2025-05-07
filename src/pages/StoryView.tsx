@@ -50,20 +50,21 @@ export const StoryView = () => {
       const cacheKey = `${story.currentSegmentIndex}_${idx}`;
       if (!nextSegmentsCache.current[cacheKey]) {
         try {
-          const nextText = await generateStorySegment(
+          const nextResult = await generateStorySegment(
             story.preferences,
             story.segments.map(s => s.text),
             choice.text
           );
-          const nextIllustration = await generateIllustration(nextText);
-          // For simplicity, use generic choices for prefetch
+          const nextIllustration = await generateIllustration(nextResult.text);
           nextSegmentsCache.current[cacheKey] = {
-            text: nextText,
+            text: nextResult.text,
             illustration: nextIllustration,
-            choices: [
-              { text: 'Continue the adventure' },
-              { text: 'Take a different path' }
-            ]
+            choices: Array.isArray(nextResult.choices)
+              ? nextResult.choices.map((c: string) => ({ text: c }))
+              : [
+                  { text: 'Continue the adventure' },
+                  { text: 'Take a different path' }
+                ]
           };
         } catch (e) {
           // Ignore prefetch errors
