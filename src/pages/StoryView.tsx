@@ -231,39 +231,42 @@ export const StoryView = () => {
                   {storyText}
                 </Text>
                 <VStack spacing={4}>
-                  {choices.map((choice, index) => (
+                  {choices && choices.length > 0 ? (
+                    choices.map((choice, index) => (
+                      <Button
+                        key={index}
+                        colorScheme="brand"
+                        variant="outline"
+                        w="full"
+                        size="lg"
+                        onClick={() => handleChoice(index)}
+                        isLoading={isLoading}
+                        _hover={{
+                          transform: 'scale(1.02)',
+                          bg: 'brand.50',
+                        }}
+                        transition="all 0.2s"
+                      >
+                        {choice.text}
+                      </Button>
+                    ))
+                  ) : (
                     <Button
-                      key={index}
-                      colorScheme="brand"
-                      variant="outline"
-                      w="full"
-                      size="lg"
-                      onClick={() => handleChoice(index)}
-                      isLoading={isLoading}
+                      colorScheme="gray"
+                      onClick={() => navigate('/')}
                       _hover={{
-                        transform: 'scale(1.02)',
-                        bg: 'brand.50',
+                        transform: 'scale(1.05)',
+                        bg: 'gray.200',
                       }}
                       transition="all 0.2s"
                     >
-                      {choice.text}
+                      Start New Story
                     </Button>
-                  ))}
+                  )}
                 </VStack>
               </VStack>
             </Box>
           </Fade>
-          <Button
-            colorScheme="gray"
-            onClick={() => navigate('/')}
-            _hover={{
-              transform: 'scale(1.05)',
-              bg: 'gray.200',
-            }}
-            transition="all 0.2s"
-          >
-            Start New Story
-          </Button>
         </VStack>
       </Container>
     </>
