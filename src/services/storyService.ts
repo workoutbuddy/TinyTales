@@ -5,6 +5,16 @@ import { generateStorySegment, generateIllustration } from './openaiService';
 
 const SYSTEM_PROMPT = `You are a friendly narrator for children aged 4-9. Generate short, engaging, age-appropriate stories with two choices at the end.`;
 
+const cleanChoices = (choices: any) =>
+  Array.isArray(choices)
+    ? choices
+        .filter((c) => c && typeof c.text === 'string')
+        .map((c) => ({ text: c.text }))
+    : [
+        { text: 'Continue the adventure' },
+        { text: 'Take a different path' }
+      ];
+
 export const createStory = async (preferences: StoryPreferences): Promise<string> => {
   console.log('[createStory] called with preferences:', preferences);
   try {
@@ -17,14 +27,9 @@ export const createStory = async (preferences: StoryPreferences): Promise<string
     console.log('[createStory] illustration generated:', illustration);
 
     const initialSegment: StorySegment = {
-      text: initial.text,
-      illustration,
-      choices: Array.isArray(initial.choices)
-        ? initial.choices.map((c: string) => ({ text: c }))
-        : [
-            { text: 'Continue the adventure' },
-            { text: 'Take a different path' }
-          ]
+      text: initial.text || '',
+      illustration: illustration || '',
+      choices: cleanChoices(initial.choices)
     };
 
     const story: Omit<Story, 'id'> = {
@@ -73,14 +78,9 @@ export const makeChoice = async (
   );
 
   const nextSegment: StorySegment = {
-    text: next.text,
-    illustration: await generateIllustration(next.text),
-    choices: Array.isArray(next.choices)
-      ? next.choices.map((c: string) => ({ text: c }))
-      : [
-          { text: 'Continue the adventure' },
-          { text: 'Take a different path' }
-        ]
+    text: next.text || '',
+    illustration: (await generateIllustration(next.text)) || '',
+    choices: cleanChoices(next.choices)
   };
 
   await updateDoc(doc(db, 'stories', storyId), {
