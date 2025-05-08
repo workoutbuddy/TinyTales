@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   Box,
   Button,
@@ -12,10 +12,16 @@ import {
   CardFooter,
   useToast,
   Spinner,
-  Center
+  Center,
+  AlertDialog,
+  AlertDialogBody,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogContent,
+  AlertDialogOverlay
 } from '@chakra-ui/react';
 import { useNavigate } from 'react-router-dom';
-import { getUserStories, createStory } from '../services/storyService';
+import { getUserStories, createStory, deleteStory } from '../services/storyService';
 import { Story } from '../types/story';
 import Background from '../components/common/Background';
 
@@ -24,6 +30,9 @@ export const Home = () => {
   const toast = useToast();
   const [stories, setStories] = useState<Story[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deletingStoryId, setDeletingStoryId] = useState<string | null>(null);
+  const [isDeleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const cancelRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     const fetchStories = async () => {
@@ -59,6 +68,31 @@ export const Home = () => {
         duration: 5000,
         isClosable: true,
       });
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deletingStoryId) return;
+    try {
+      await deleteStory(deletingStoryId);
+      setStories(stories => stories.filter(s => s.id !== deletingStoryId));
+      toast({
+        title: 'Story deleted',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to delete story. Please try again.',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+    } finally {
+      setDeleteDialogOpen(false);
+      setDeletingStoryId(null);
     }
   };
 
@@ -131,27 +165,38 @@ export const Home = () => {
                         {story.ending ? story.ending : 'The End'}
                       </Text>
                     )}
-                    {story.status === 'ended' ? (
+                    <VStack w="full" spacing={2}>
+                      {story.status === 'ended' ? (
+                        <Button
+                          colorScheme="purple"
+                          variant="outline"
+                          w="full"
+                          fontSize={{ base: 'sm', md: 'md' }}
+                          onClick={() => handleExploreOtherPath(story.preferences)}
+                        >
+                          Explore Other Path
+                        </Button>
+                      ) : (
+                        <Button
+                          colorScheme="brand"
+                          variant="outline"
+                          w="full"
+                          fontSize={{ base: 'sm', md: 'md' }}
+                          onClick={() => navigate(`/story/${story.id}`)}
+                        >
+                          Continue Story
+                        </Button>
+                      )}
                       <Button
-                        colorScheme="purple"
+                        colorScheme="red"
                         variant="outline"
                         w="full"
                         fontSize={{ base: 'sm', md: 'md' }}
-                        onClick={() => handleExploreOtherPath(story.preferences)}
+                        onClick={() => { setDeletingStoryId(story.id); setDeleteDialogOpen(true); }}
                       >
-                        Explore Other Path
+                        Delete
                       </Button>
-                    ) : (
-                      <Button
-                        colorScheme="brand"
-                        variant="outline"
-                        w="full"
-                        fontSize={{ base: 'sm', md: 'md' }}
-                        onClick={() => navigate(`/story/${story.id}`)}
-                      >
-                        Continue Story
-                      </Button>
-                    )}
+                    </VStack>
                   </CardFooter>
                 </Card>
               ))}
@@ -159,6 +204,30 @@ export const Home = () => {
           )}
         </VStack>
       </Container>
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog
+        isOpen={isDeleteDialogOpen}
+        leastDestructiveRef={cancelRef}
+        onClose={() => setDeleteDialogOpen(false)}
+      >
+        <AlertDialogOverlay />
+        <AlertDialogContent>
+          <AlertDialogHeader fontSize="lg" fontWeight="bold">
+            Delete Story
+          </AlertDialogHeader>
+          <AlertDialogBody>
+            Are you sure you want to delete this story? This action cannot be undone.
+          </AlertDialogBody>
+          <AlertDialogFooter>
+            <Button ref={cancelRef} onClick={() => setDeleteDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button colorScheme="red" onClick={handleDelete} ml={3}>
+              Delete
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }; 
