@@ -35,7 +35,38 @@ const settings = [
   'Jungle Adventure',
   'Desert Oasis',
   'Arctic Wonderland',
-  'Magical Garden'
+  'Magical Garden',
+  'Dinosaur World',
+  'Candy Land',
+  'Pirate Ship',
+  'Haunted House',
+  'Fairy Forest',
+  'Superhero City',
+  'Arctic Adventure',
+  'Time Travel',
+  'Secret Laboratory',
+  'Other',
+];
+
+const animalOptions = [
+  'Dog',
+  'Cat',
+  'Dinosaur',
+  'Dragon',
+  'Unicorn',
+  'Bear',
+  'Elephant',
+  'Lion',
+  'Tiger',
+  'Rabbit',
+  'Horse',
+  'Monkey',
+  'Penguin',
+  'Fox',
+  'Wolf',
+  'Owl',
+  'Mouse',
+  'Other',
 ];
 
 const characterOptions = [
@@ -176,13 +207,24 @@ export const NewStory = () => {
     characters: [],
     lifeLesson: '',
   });
+  const [customSetting, setCustomSetting] = useState('');
+  const [customAnimal, setCustomAnimal] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
+    // Use custom setting if 'Other' is selected
+    const finalSetting = preferences.setting === 'Other' ? customSetting : preferences.setting;
+    // Use custom animal if 'Other' is selected
+    const finalAnimal = preferences.favoriteAnimal === 'Other' ? customAnimal : preferences.favoriteAnimal;
+
     try {
-      const storyId = await createStory(preferences);
+      const storyId = await createStory({
+        ...preferences,
+        setting: finalSetting,
+        favoriteAnimal: finalAnimal,
+      });
       navigate(`/story/${storyId}`);
     } catch (error) {
       toast({
@@ -273,15 +315,23 @@ export const NewStory = () => {
                     <Icon as={FaPaw} w={6} h={6} color="brand.500" />
                     <FormLabel fontSize="lg">Favorite Animal</FormLabel>
                   </HStack>
-                  <Input
-                    name="favoriteAnimal"
+                  <select
                     value={preferences.favoriteAnimal}
-                    onChange={handleChange}
-                    placeholder="Enter favorite animal"
-                    size="lg"
-                    _hover={{ borderColor: 'brand.400' }}
-                    _focus={{ borderColor: 'brand.500', boxShadow: '0 0 0 1px var(--chakra-colors-brand-500)' }}
-                  />
+                    onChange={e => setPreferences(p => ({ ...p, favoriteAnimal: e.target.value }))}
+                  >
+                    <option value="">None</option>
+                    {animalOptions.map(animal => (
+                      <option key={animal} value={animal}>{animal}</option>
+                    ))}
+                  </select>
+                  {preferences.favoriteAnimal === 'Other' && (
+                    <Input
+                      mt={2}
+                      placeholder="Enter your own animal"
+                      value={customAnimal}
+                      onChange={e => setCustomAnimal(e.target.value)}
+                    />
+                  )}
                 </FormControl>
 
                 <FormControl isRequired>
@@ -290,18 +340,23 @@ export const NewStory = () => {
                     <FormLabel fontSize="lg">Story Setting</FormLabel>
                   </HStack>
                   <select
-                    name="setting"
                     value={preferences.setting}
-                    onChange={handleChange}
-                    style={{ padding: '12px', borderRadius: '8px', borderColor: '#b31aff', width: '100%', fontSize: '1.1rem' }}
+                    onChange={e => setPreferences(p => ({ ...p, setting: e.target.value }))}
                   >
-                    <option value="">Choose a setting</option>
-                    {settings.map((setting) => (
-                      <option key={setting} value={setting}>
-                        {setting}
-                      </option>
+                    <option value="">Select a setting</option>
+                    {settings.map(setting => (
+                      <option key={setting} value={setting}>{setting}</option>
                     ))}
                   </select>
+                  {preferences.setting === 'Other' && (
+                    <Input
+                      mt={2}
+                      placeholder="Enter your own setting"
+                      value={customSetting}
+                      onChange={e => setCustomSetting(e.target.value)}
+                      isRequired
+                    />
+                  )}
                 </FormControl>
 
                 <FormControl>
