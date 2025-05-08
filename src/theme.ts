@@ -16,8 +16,8 @@ const theme = extendTheme({
     },
   },
   fonts: {
-    heading: '"Comic Sans MS", "Comic Sans", cursive',
-    body: '"Comic Sans MS", "Comic Sans", cursive',
+    heading: 'Quicksand, sans-serif',
+    body: 'Quicksand, sans-serif',
   },
   components: {
     Button: {
