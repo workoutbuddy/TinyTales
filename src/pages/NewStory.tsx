@@ -196,6 +196,13 @@ const lifeLessons = [
   'Sharing',
 ];
 
+const moods = [
+  { value: 'bedtime', label: '🛏 Bedtime', description: 'Calm, gentle, soothing' },
+  { value: 'silly', label: '🤪 Silly', description: 'Funny, playful' },
+  { value: 'bold', label: '🧗 Bold', description: 'Adventurous, brave' },
+  { value: 'curious', label: '🧠 Curious', description: 'Mysterious, discovery-focused' },
+];
+
 export const NewStory = () => {
   const navigate = useNavigate();
   const toast = useToast();
@@ -209,6 +216,7 @@ export const NewStory = () => {
   });
   const [customSetting, setCustomSetting] = useState('');
   const [customAnimal, setCustomAnimal] = useState('');
+  const [mood, setMood] = useState('bedtime');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -224,6 +232,7 @@ export const NewStory = () => {
         ...preferences,
         setting: finalSetting,
         favoriteAnimal: finalAnimal,
+        mood,
       });
       navigate(`/story/${storyId}`);
     } catch (error) {
@@ -410,6 +419,31 @@ export const NewStory = () => {
                       </option>
                     ))}
                   </select>
+                </FormControl>
+
+                <FormControl isRequired>
+                  <FormLabel>Mood & Tone</FormLabel>
+                  <HStack spacing={2} wrap="wrap">
+                    {moods.map(option => (
+                      <Button
+                        key={option.value}
+                        variant={mood === option.value ? 'solid' : 'outline'}
+                        colorScheme={mood === option.value ? 'brand' : 'gray'}
+                        onClick={() => setMood(option.value)}
+                        aria-label={option.label}
+                        fontSize="lg"
+                        px={4}
+                        py={2}
+                        minW="120px"
+                        mb={2}
+                      >
+                        {option.label}
+                      </Button>
+                    ))}
+                  </HStack>
+                  <Text fontSize="sm" color="gray.500" mt={2}>
+                    {moods.find(m => m.value === mood)?.description}
+                  </Text>
                 </FormControl>
 
                 <Button

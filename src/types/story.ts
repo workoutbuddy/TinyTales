@@ -7,6 +7,7 @@ export interface StoryPreferences {
   age?: number;
   interests?: string[];
   theme?: string;
+  mood?: 'bedtime' | 'silly' | 'bold' | 'curious';
 }
 
 export interface StoryChoice {

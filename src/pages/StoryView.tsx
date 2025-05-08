@@ -444,7 +444,7 @@ export const StoryView = () => {
             <Text fontSize="md">Would you like to go on another adventure?</Text>
           </ModalBody>
           <ModalFooter>
-            <Button colorScheme="brand" onClick={() => navigate('/')}>Start a New Adventure</Button>
+            <Button colorScheme="brand" onClick={() => navigate('/story/new')}>Start a New Adventure</Button>
             <Button ml={3} variant="ghost" onClick={() => navigate('/')}>Back to Home</Button>
           </ModalFooter>
         </ModalContent>

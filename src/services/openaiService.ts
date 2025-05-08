@@ -26,6 +26,25 @@ export const generateStorySegment = async (
     endingPrompt = 'This is the final segment. End the story with a happy conclusion. Do not provide any choices.';
   }
 
+  // --- Add mood/tone to the prompt ---
+  let moodPrompt = '';
+  switch (preferences.mood) {
+    case 'bedtime':
+      moodPrompt = 'Write the story in a calm, gentle, soothing bedtime tone. Use soft vocabulary and a peaceful pace.';
+      break;
+    case 'silly':
+      moodPrompt = 'Write the story in a funny, wacky, and playful tone. Use silly words and lots of energy.';
+      break;
+    case 'bold':
+      moodPrompt = 'Write the story in a bold, adventurous, and brave tone. Use exciting vocabulary and action-packed pacing.';
+      break;
+    case 'curious':
+      moodPrompt = 'Write the story in a mysterious, thoughtful, and discovery-focused tone. Encourage curiosity and wonder.';
+      break;
+    default:
+      moodPrompt = '';
+  }
+
   const systemPrompt = `You are a friendly narrator for children aged 4-9. 
     IMPORTANT: Your response MUST be a valid JSON object with EXACTLY this structure:
     {
@@ -34,8 +53,9 @@ export const generateStorySegment = async (
     }
     
     ${endingPrompt || 'Generate a short, engaging segment.'}
-    The story should be set in ${preferences.setting} and feature ${preferences.childName} and their favorite animal, ${preferences.favoriteAnimal}. 
+    The story should be set in ${preferences.setting} and feature ${preferences.childName}${preferences.favoriteAnimal ? ` and their favorite animal, ${preferences.favoriteAnimal}` : ''}.
     ${characterText} ${lessonText} 
+    ${moodPrompt}
     ${!endingPrompt ? 'At the end of each segment, provide two clear, actionable choices as an array, e.g. ["Explore the cave", "Climb the tree"]. End with a question or prompt for the next action.' : ''}
     
     DO NOT include any text outside the JSON structure.
