@@ -8,6 +8,7 @@ import Login from './pages/Login';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Navigation from './components/common/Navigation';
 import theme from './theme';
+import { MoodProvider } from './theme/MoodContext';
 
 // Protected Route component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -26,33 +27,35 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 
 function App() {
   return (
-    <ChakraProvider theme={theme as Theme}>
-      <AuthProvider>
-      <Router>
-          <Navigation />
-        <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/" element={
-              <ProtectedRoute>
-                <Home />
-              </ProtectedRoute>
-            } />
-            <Route path="/story/new" element={
-              <ProtectedRoute>
-                <NewStory />
-              </ProtectedRoute>
-            } />
-            <Route path="/story/:storyId" element={
-              <ProtectedRoute>
-                <StoryView />
-              </ProtectedRoute>
-            } />
-          <Route path="/story" element={<Navigate to="/" replace />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </Router>
-      </AuthProvider>
-    </ChakraProvider>
+    <MoodProvider>
+      <ChakraProvider theme={theme as Theme}>
+        <AuthProvider>
+        <Router>
+            <Navigation />
+          <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route path="/" element={
+                <ProtectedRoute>
+                  <Home />
+                </ProtectedRoute>
+              } />
+              <Route path="/story/new" element={
+                <ProtectedRoute>
+                  <NewStory />
+                </ProtectedRoute>
+              } />
+              <Route path="/story/:storyId" element={
+                <ProtectedRoute>
+                  <StoryView />
+                </ProtectedRoute>
+              } />
+            <Route path="/story" element={<Navigate to="/" replace />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Router>
+        </AuthProvider>
+      </ChakraProvider>
+    </MoodProvider>
   );
 }
 

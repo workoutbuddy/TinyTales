@@ -1,6 +1,11 @@
 import React from 'react';
 import { Box } from '@chakra-ui/react';
 import { keyframes } from '@emotion/react';
+import { useMood } from '../../theme/MoodContext';
+import BedtimeBg from '../backgrounds/BedtimeBg';
+import SillyBg from '../backgrounds/SillyBg';
+import BoldBg from '../backgrounds/BoldBg';
+import CuriousBg from '../backgrounds/CuriousBg';
 
 const float = keyframes`
   0% { transform: translateY(0px); }
@@ -13,7 +18,16 @@ const spin = keyframes`
   to { transform: rotate(360deg); }
 `;
 
+const moodBgMap: Record<string, React.ReactNode> = {
+  bedtime: <BedtimeBg />,
+  silly: <SillyBg />,
+  bold: <BoldBg />,
+  curious: <CuriousBg />,
+};
+
 const Background = () => {
+  const { theme } = useMood();
+  const moodKey = theme.name.toLowerCase();
   return (
     <Box
       position="fixed"
@@ -25,6 +39,8 @@ const Background = () => {
       overflow="hidden"
       bg="gray.50"
     >
+      {/* Mood-based background illustration (inline SVG for animation) */}
+      {moodBgMap[moodKey]}
       {/* Decorative elements */}
       <Box
         position="absolute"

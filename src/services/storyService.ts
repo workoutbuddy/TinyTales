@@ -38,7 +38,7 @@ Format your response as:
   "choices": ["First specific choice", "Second specific choice"]
 }`;
 
-const SHOW_ILLUSTRATIONS = true; // Set to true to enable picture generation
+const SHOW_ILLUSTRATIONS = false; // Set to false to disable picture generation
 
 // List of generic choices to filter out
 const GENERIC_CHOICES = [
@@ -543,14 +543,14 @@ export const makeChoice = async (
   const MAX_SEGMENTS = 4;
   const willBeLastSegment = story.currentSegmentIndex + 1 >= MAX_SEGMENTS - 1;
   let isEnded = !nextSegment.choices || nextSegment.choices.length === 0;
-  let ending = undefined;
+  let ending: string | undefined = undefined;
   if (willBeLastSegment) {
     isEnded = true;
-    ending = nextSegment.text;
+    ending = nextSegment.text || undefined;
     nextSegment.choices = [];
   } else {
     isEnded = !nextSegment.choices || nextSegment.choices.length === 0;
-    ending = isEnded ? nextSegment.text : undefined;
+    ending = isEnded ? (nextSegment.text || undefined) : undefined;
   }
   // --- END FORCE ENDING ---
 

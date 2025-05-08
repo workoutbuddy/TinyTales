@@ -26,6 +26,7 @@ import { getStory, makeChoice } from '../services/storyService';
 import { Story } from '../types/story';
 import { generateStorySegment, generateIllustration } from '../services/openaiService';
 import Background from '../components/common/Background';
+import { useMood } from '../theme/MoodContext';
 
 const fadeIn = keyframes`
   from { opacity: 0; transform: translateY(20px); }
@@ -44,6 +45,7 @@ export const StoryView = () => {
   const [isEndModalOpen, setEndModalOpen] = useState(false);
   const [error, setError] = useState('');
   const [rawModelOutputs, setRawModelOutputs] = useState<any[]>([]);
+  const { theme, setMood } = useMood();
 
   // Update rawModelOutputs state if it's empty but available in currentSegment
   useEffect(() => {
@@ -100,6 +102,10 @@ export const StoryView = () => {
       setRawModelOutputs(currentSegment.rawModelOutputs);
     }
   }, [story]);
+
+  useEffect(() => {
+    if (story?.preferences?.mood) setMood(story.preferences.mood);
+  }, [story, setMood]);
 
   const loadStory = async () => {
     if (!storyId) return;
@@ -311,128 +317,132 @@ export const StoryView = () => {
   return (
     <>
       <Background />
-      <Container maxW="container.md" py={{ base: 4, md: 10 }} px={{ base: 2, md: 0 }}>
-        <VStack spacing={{ base: 4, md: 8 }} align="stretch">
-          <HStack justify="space-between">
-            <Heading
-              as="h1"
-              size={{ base: 'lg', md: 'xl' }}
-              bgGradient="linear(to-r, brand.400, brand.600)"
-              bgClip="text"
-            >
-              TinyTales
-            </Heading>
-            <IconButton
-              aria-label={isSpeaking ? 'Stop reading' : 'Read story'}
-              icon={isSpeaking ? <FaVolumeMute /> : <FaVolumeUp />}
-              onClick={toggleSpeech}
-              colorScheme="brand"
-              variant="ghost"
-              size="lg"
-              _hover={{ transform: 'scale(1.1)' }}
-              transition="all 0.2s"
-            />
-          </HStack>
-          <Fade in={true}>
-            <Box
-              p={8}
-              bg="white"
-              borderRadius="2xl"
-              boxShadow="xl"
-              position="relative"
-              _before={{
-                content: '""',
-                position: 'absolute',
-                top: '-2px',
-                left: '-2px',
-                right: '-2px',
-                bottom: '-2px',
-                bg: 'brand.200',
-                borderRadius: '2xl',
-                zIndex: -1,
-                opacity: 0.5,
-              }}
-            >
-              <VStack spacing={8} align="stretch">
-                <Box mb={8}>
-                  {currentSegment.illustration && (
-                    <Image
-                      src={currentSegment.illustration}
-                      alt="Story illustration"
-                      borderRadius="lg"
-                      boxShadow="md"
-                      w="100%"
-                      maxH="400px"
-                      objectFit="cover"
-                      mb={4}
-                    />
-                  )}
-                </Box>
-                <Text
-                  fontSize={{ base: 'md', md: 'xl' }}
-                  whiteSpace="pre-wrap"
-                  color="gray.700"
-                  lineHeight="tall"
-                  animation={`${fadeIn} 0.5s ease-out`}
-                  mb={{ base: 4, md: 8 }}
-                >
-                  {storyText}
-                </Text>
-                {/* Show loading spinner while waiting for choices */}
-                {isLoading && (
-                  <VStack py={8}>
-                    <Text color="brand.500" fontWeight="bold">Generating options…</Text>
-                    <Box className="spinner" w={8} h={8} borderWidth={2} borderRadius="full" borderColor="brand.500" borderTopColor="transparent" animation="spin 1s linear infinite" />
-                  </VStack>
-                )}
-                {/* Show error and Try Again button if all retries fail */}
-                {error && (
-                  <VStack py={8}>
-                    <Text color="red.500" fontWeight="bold">{error}</Text>
-                    <Button colorScheme="brand" onClick={() => window.location.reload()}>Try Again</Button>
-                  </VStack>
-                )}
-                <VStack spacing={4} align="stretch" w="100%">
-                  {/* Only show choices if not loading, not error, and not last page */}
-                  {!isLoading && !error && choices && choices.length > 0 && (
-                    choices.length === 1 && choices[0].text === 'The End' ? (
-                      <Button
-                        colorScheme="brand"
-                        size="lg"
+      <Box minH="100vh" bgGradient={theme.bgGradient} fontFamily={theme.font} color={theme.text}>
+        <Container maxW="container.md" py={10}>
+          <VStack spacing={8} align="stretch">
+            <HStack justify="space-between">
+              <Heading
+                as="h1"
+                size="xl"
+                bgGradient={theme.bgGradient}
+                bgClip="text"
+                fontFamily={theme.font}
+                color={theme.accent}
+              >
+                {theme.icon} TinyTales
+              </Heading>
+              <IconButton
+                aria-label={isSpeaking ? 'Stop reading' : 'Read story'}
+                icon={isSpeaking ? <FaVolumeMute /> : <FaVolumeUp />}
+                onClick={toggleSpeech}
+                colorScheme="brand"
+                variant="ghost"
+                size="lg"
+                _hover={{ transform: 'scale(1.1)' }}
+                transition="all 0.2s"
+              />
+            </HStack>
+            <Fade in={true}>
+              <Box
+                p={8}
+                bg="white"
+                borderRadius="2xl"
+                boxShadow="xl"
+                position="relative"
+                _before={{
+                  content: '""',
+                  position: 'absolute',
+                  top: '-2px',
+                  left: '-2px',
+                  right: '-2px',
+                  bottom: '-2px',
+                  bg: 'brand.200',
+                  borderRadius: '2xl',
+                  zIndex: -1,
+                  opacity: 0.5,
+                }}
+              >
+                <VStack spacing={8} align="stretch">
+                  <Box mb={8}>
+                    {currentSegment.illustration && (
+                      <Image
+                        src={currentSegment.illustration}
+                        alt="Story illustration"
+                        borderRadius="lg"
+                        boxShadow="md"
                         w="100%"
-                        onClick={() => setEndModalOpen(true)}
-                      >
-                        The End
-                      </Button>
-                    ) : (
-                      choices.map((choice, index) => (
-                        <Button
-                          key={index}
-                          colorScheme="brand"
-                          variant="outline"
-                          w="100%"
-                          size="lg"
-                          onClick={() => handleChoice(index)}
-                          isLoading={isLoading}
-                          _hover={{
-                            transform: 'scale(1.02)',
-                            bg: 'brand.50',
-                          }}
-                          transition="all 0.2s"
-                          whiteSpace="normal"
-                          textAlign="left"
-                        >
-                          {typeof choice.text === 'string' ? choice.text : 'Continue the story'}
-                        </Button>
-                      ))
-                    )
+                        maxH="400px"
+                        objectFit="cover"
+                        mb={4}
+                      />
+                    )}
+                  </Box>
+                  <Text
+                    fontSize={{ base: 'md', md: 'xl' }}
+                    whiteSpace="pre-wrap"
+                    color="gray.700"
+                    lineHeight="tall"
+                    animation={`${fadeIn} 0.5s ease-out`}
+                    mb={{ base: 4, md: 8 }}
+                  >
+                    {storyText}
+                  </Text>
+                  {/* Show loading spinner while waiting for choices */}
+                  {isLoading && (
+                    <VStack py={8}>
+                      <Text color="brand.500" fontWeight="bold">Generating options…</Text>
+                      <Box className="spinner" w={8} h={8} borderWidth={2} borderRadius="full" borderColor="brand.500" borderTopColor="transparent" animation="spin 1s linear infinite" />
+                    </VStack>
                   )}
+                  {/* Show error and Try Again button if all retries fail */}
+                  {error && (
+                    <VStack py={8}>
+                      <Text color="red.500" fontWeight="bold">{error}</Text>
+                      <Button colorScheme="brand" onClick={() => window.location.reload()}>Try Again</Button>
+                    </VStack>
+                  )}
+                  <VStack spacing={4} align="stretch" w="100%">
+                    {/* Only show choices if not loading, not error, and not last page */}
+                    {!isLoading && !error && choices && choices.length > 0 && (
+                      choices.length === 1 && choices[0].text === 'The End' ? (
+                        <Button
+                          colorScheme="brand"
+                          size="lg"
+                          w="100%"
+                          onClick={() => setEndModalOpen(true)}
+                        >
+                          The End
+                        </Button>
+                      ) : (
+                        choices.map((choice, index) => (
+                          <Button
+                            key={index}
+                            colorScheme="brand"
+                            variant="outline"
+                            w="100%"
+                            size="lg"
+                            onClick={() => handleChoice(index)}
+                            isLoading={isLoading}
+                            _hover={{
+                              transform: 'scale(1.02)',
+                              bg: 'brand.50',
+                            }}
+                            transition="all 0.2s"
+                            whiteSpace="normal"
+                            textAlign="left"
+                          >
+                            {typeof choice.text === 'string' ? choice.text : 'Continue the story'}
+                          </Button>
+                        ))
+                      )
+                    )}
+                  </VStack>
                 </VStack>
-              </VStack>
-            </Box>
-          </Fade>
-        </VStack>
-      </Container>
+              </Box>
+            </Fade>
+          </VStack>
+        </Container>
+      </Box>
       <Modal isOpen={isEndModalOpen} onClose={() => {}} isCentered>
         <ModalOverlay />
         <ModalContent>
