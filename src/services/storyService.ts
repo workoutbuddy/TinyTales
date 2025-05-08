@@ -538,18 +538,31 @@ export const makeChoice = async (
   };
   console.log('[makeChoice] nextSegment:', nextSegment);
 
-  // Determine if the story has ended (no choices left)
-  const isEnded = !nextSegment.choices || nextSegment.choices.length === 0;
+  // --- FORCE ENDING AFTER 4 SEGMENTS ---
+  const MAX_SEGMENTS = 4;
+  const willBeLastSegment = story.currentSegmentIndex + 1 >= MAX_SEGMENTS - 1;
+  let isEnded = !nextSegment.choices || nextSegment.choices.length === 0;
+  let ending = undefined;
+  if (willBeLastSegment) {
+    isEnded = true;
+    ending = nextSegment.text;
+    nextSegment.choices = [];
+  } else {
+    isEnded = !nextSegment.choices || nextSegment.choices.length === 0;
+    ending = isEnded ? nextSegment.text : undefined;
+  }
+  // --- END FORCE ENDING ---
 
-  // If ended, store the ending text (last segment's text)
-  const ending = isEnded ? nextSegment.text : undefined;
-
-  await updateDoc(doc(db, 'stories', storyId), {
+  const updateFields: { segments: StorySegment[]; currentSegmentIndex: number; status: 'active' | 'ended'; ending?: string } = {
     segments: [...story.segments, nextSegment],
     currentSegmentIndex: story.currentSegmentIndex + 1,
     status: isEnded ? 'ended' : 'active',
-    ...(isEnded && { ending }),
-  });
+  };
+  if (isEnded && ending !== undefined) {
+    updateFields.ending = ending as string;
+  }
+
+  await updateDoc(doc(db, 'stories', storyId), updateFields);
 
   // --- LOGGING: Show raw AI response and choices for debugging endings ---
   console.log('[makeChoice][AI rawModelOutputs]:', JSON.stringify(next.rawModelOutputs, null, 2));

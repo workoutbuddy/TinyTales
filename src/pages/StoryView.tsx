@@ -241,15 +241,82 @@ export const StoryView = () => {
   }
   console.log('DEBUG: Final choices:', choices);
 
+  // If the story is ended, show the ending modal/message
+  if (story.status === 'ended') {
+    return (
+      <>
+        <Background />
+        <Container maxW="container.md" py={{ base: 4, md: 10 }} px={{ base: 2, md: 0 }}>
+          <VStack spacing={{ base: 4, md: 8 }} align="stretch">
+            <HStack justify="space-between">
+              <Heading
+                as="h1"
+                size={{ base: 'lg', md: 'xl' }}
+                bgGradient="linear(to-r, brand.400, brand.600)"
+                bgClip="text"
+              >
+                TinyTales
+              </Heading>
+            </HStack>
+            <Fade in={true}>
+              <Box
+                p={8}
+                bg="white"
+                borderRadius="2xl"
+                boxShadow="xl"
+                position="relative"
+                _before={{
+                  content: '""',
+                  position: 'absolute',
+                  top: '-2px',
+                  left: '-2px',
+                  right: '-2px',
+                  bottom: '-2px',
+                  bg: 'brand.200',
+                  borderRadius: '2xl',
+                  zIndex: -1,
+                  opacity: 0.5,
+                }}
+              >
+                <VStack spacing={8} align="stretch">
+                  <Text
+                    fontSize={{ base: 'md', md: 'xl' }}
+                    whiteSpace="pre-wrap"
+                    color="gray.700"
+                    lineHeight="tall"
+                    animation={`${fadeIn} 0.5s ease-out`}
+                    mb={{ base: 4, md: 8 }}
+                  >
+                    {story.ending || story.segments[story.segments.length - 1]?.text || 'The End'}
+                  </Text>
+                  <Button
+                    colorScheme="brand"
+                    size="lg"
+                    w="100%"
+                    fontSize={{ base: 'md', md: 'lg' }}
+                    py={{ base: 5, md: 6 }}
+                    onClick={() => navigate('/')}
+                  >
+                    Start a New Adventure
+                  </Button>
+                </VStack>
+              </Box>
+            </Fade>
+          </VStack>
+        </Container>
+      </>
+    );
+  }
+
   return (
     <>
       <Background />
-      <Container maxW="container.md" py={10}>
-        <VStack spacing={8} align="stretch">
+      <Container maxW="container.md" py={{ base: 4, md: 10 }} px={{ base: 2, md: 0 }}>
+        <VStack spacing={{ base: 4, md: 8 }} align="stretch">
           <HStack justify="space-between">
             <Heading
               as="h1"
-              size="xl"
+              size={{ base: 'lg', md: 'xl' }}
               bgGradient="linear(to-r, brand.400, brand.600)"
               bgClip="text"
             >
@@ -302,12 +369,12 @@ export const StoryView = () => {
                   )}
                 </Box>
                 <Text
-                  fontSize="xl"
+                  fontSize={{ base: 'md', md: 'xl' }}
                   whiteSpace="pre-wrap"
                   color="gray.700"
                   lineHeight="tall"
                   animation={`${fadeIn} 0.5s ease-out`}
-                  mb={8}
+                  mb={{ base: 4, md: 8 }}
                 >
                   {storyText}
                 </Text>

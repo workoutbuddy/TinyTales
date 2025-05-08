@@ -73,18 +73,18 @@ export const Home = () => {
   return (
     <>
       <Background />
-      <Container maxW="container.xl" py={10}>
-        <VStack spacing={8} align="stretch">
+      <Container maxW="container.xl" py={{ base: 4, md: 10 }} px={{ base: 2, md: 0 }}>
+        <VStack spacing={{ base: 4, md: 8 }} align="stretch">
           <Box textAlign="center">
-              <Heading
-                as="h1"
-              size="2xl"
-                bgGradient="linear(to-r, brand.400, brand.600)"
-                bgClip="text"
+            <Heading
+              as="h1"
+              size={{ base: 'lg', md: '2xl' }}
+              bgGradient="linear(to-r, brand.400, brand.600)"
+              bgClip="text"
             >
               Your Stories
             </Heading>
-            <Text mt={4} fontSize="xl" color="gray.600">
+            <Text fontSize={{ base: 'sm', md: 'lg' }} color="gray.600">
               Create new stories or continue your adventures
             </Text>
           </Box>
@@ -92,12 +92,13 @@ export const Home = () => {
             <Button
               colorScheme="brand"
               size="lg"
+              px={{ base: 4, md: 8 }}
+              fontSize={{ base: 'md', md: 'lg' }}
+              alignSelf="center"
               onClick={() => navigate('/story/new')}
-            alignSelf="center"
-            px={8}
-          >
-            Create New Story
-          </Button>
+            >
+              Create New Story
+            </Button>
 
           {stories.length === 0 ? (
             <Box textAlign="center" py={10}>
@@ -110,27 +111,23 @@ export const Home = () => {
               {stories.map((story) => (
                 <Card
                   key={story.id}
-                  bg="white"
-                  borderRadius="lg"
+                  p={{ base: 4, md: 6 }}
+                  borderRadius="xl"
                   overflow="hidden"
                   boxShadow="md"
                   _hover={{ transform: 'translateY(-4px)', boxShadow: 'lg' }}
-              transition="all 0.2s"
-            >
+                  transition="all 0.2s"
+                >
                   <CardBody>
                     <VStack align="start" spacing={3}>
-                      <Heading size="md">{story.preferences.setting}</Heading>
-                      <Text color="gray.600">
-                        Created for: {story.preferences.childName}
-                      </Text>
-                      <Text color="gray.600">
-                        Characters: {story.preferences.characters.join(', ')}
-                      </Text>
+                      <Heading size={{ base: 'sm', md: 'md' }}>{story.preferences.setting}</Heading>
+                      <Text fontSize={{ base: 'sm', md: 'md' }}>Created for: {story.preferences.childName}</Text>
+                      <Text fontSize={{ base: 'sm', md: 'md' }}>Characters: {story.preferences.characters.join(', ')}</Text>
                     </VStack>
                   </CardBody>
                   <CardFooter>
                     {story.status === 'ended' && (
-                      <Text color="purple.500" fontWeight="bold" mb={2}>
+                      <Text color="purple.500" fontWeight="bold" mb={2} fontSize={{ base: 'sm', md: 'md' }}>
                         {story.ending ? story.ending : 'The End'}
                       </Text>
                     )}
@@ -139,6 +136,7 @@ export const Home = () => {
                         colorScheme="purple"
                         variant="outline"
                         w="full"
+                        fontSize={{ base: 'sm', md: 'md' }}
                         onClick={() => handleExploreOtherPath(story.preferences)}
                       >
                         Explore Other Path
@@ -148,10 +146,11 @@ export const Home = () => {
                         colorScheme="brand"
                         variant="outline"
                         w="full"
+                        fontSize={{ base: 'sm', md: 'md' }}
                         onClick={() => navigate(`/story/${story.id}`)}
                       >
                         Continue Story
-            </Button>
+                      </Button>
                     )}
                   </CardFooter>
                 </Card>
