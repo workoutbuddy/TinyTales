@@ -178,12 +178,12 @@ export const StoryView = () => {
   }
 
   const currentSegment = story.segments[story.currentSegmentIndex];
-  console.log('DEBUG: currentSegment full object:', JSON.stringify(currentSegment, null, 2));
-  console.log('DEBUG: rawModelOutputs state:', JSON.stringify(rawModelOutputs, null, 2));
+  // console.log('DEBUG: currentSegment full object:', JSON.stringify(currentSegment, null, 2));
+  // console.log('DEBUG: rawModelOutputs state:', JSON.stringify(rawModelOutputs, null, 2));
 
   // Robustly extract story text
   let storyText = currentSegment.text;
-  console.log('DEBUG: Initial storyText:', storyText);
+  // console.log('DEBUG: Initial storyText:', storyText);
   
   if (typeof storyText === 'string' && storyText.trim().startsWith('{')) {
     try {
@@ -198,7 +198,7 @@ export const StoryView = () => {
       storyText = 'A magical story unfolds...';
     }
   }
-  console.log('DEBUG: Final storyText:', storyText);
+  // console.log('DEBUG: Final storyText:', storyText);
 
   // --- Robust generic/fallback filtering ---
   const GENERIC_FALLBACKS = [
@@ -445,6 +445,7 @@ export const StoryView = () => {
           </ModalBody>
           <ModalFooter>
             <Button colorScheme="brand" onClick={() => navigate('/')}>Start a New Adventure</Button>
+            <Button ml={3} variant="ghost" onClick={() => navigate('/')}>Back to Home</Button>
           </ModalFooter>
         </ModalContent>
       </Modal>

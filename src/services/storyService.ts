@@ -1,5 +1,5 @@
 import { db } from './firebase';
-import { collection, addDoc, getDoc, doc, updateDoc } from 'firebase/firestore';
+import { collection, addDoc, getDoc, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { Story, StoryPreferences, StorySegment, StoryChoice } from '../types/story';
 import { generateStorySegment, generateIllustration } from './openaiService';
 import { auth } from './firebase';
@@ -12,6 +12,7 @@ IMPORTANT RULES:
 2. Choices MUST be specific to the story context and NEVER generic.
 3. Choices should be actionable and lead to different story paths.
 4. Return choices as a JSON array of strings.
+5. Try to generate the photos of characters which match the actual characters.
 
 BAD CHOICES (NEVER USE THESE):
 - "Continue the adventure"
@@ -562,7 +563,14 @@ export const makeChoice = async (
     updateFields.ending = ending as string;
   }
 
-  await updateDoc(doc(db, 'stories', storyId), updateFields);
+  // Debug: Log what will be sent to Firestore
+  console.log('[makeChoice][DEBUG] updateFields:', updateFields);
+  try {
+    await updateDoc(doc(db, 'stories', storyId), updateFields);
+    console.log('[makeChoice][DEBUG] updateDoc success');
+  } catch (err) {
+    console.error('[makeChoice][DEBUG] updateDoc error:', err);
+  }
 
   // --- LOGGING: Show raw AI response and choices for debugging endings ---
   console.log('[makeChoice][AI rawModelOutputs]:', JSON.stringify(next.rawModelOutputs, null, 2));
@@ -590,4 +598,8 @@ export const getUserStories = async (): Promise<Story[]> => {
     id: doc.id,
     ...doc.data()
   })) as Story[];
+};
+
+export const deleteStory = async (storyId: string): Promise<void> => {
+  await deleteDoc(doc(db, 'stories', storyId));
 }; 
