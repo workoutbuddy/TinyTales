@@ -1,7 +1,6 @@
 import { StoryPreferences, StorySegment } from '../types/story';
 
-const OPENAI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY;
-const OPENAI_API_URL = 'https://api.openai.com/v1';
+const API_URL = '/api/openai';
 
 interface GPTResponse {
   choices: Array<{
@@ -37,23 +36,23 @@ export const generateStorySegment = async (
 ${characterText}
 ${previousSegments.length > 0 ? `Previous story: ${previousSegments.join(' ')}\nLast choice: ${lastChoice}` : ''}`;
 
-  const response = await fetch(`${OPENAI_API_URL}/chat/completions`, {
+  const messages = [
+    { role: 'system', content: SYSTEM_PROMPT },
+    { role: 'user', content: prompt }
+  ];
+
+  const response = await fetch(API_URL, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${OPENAI_API_KEY}`
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
+      endpoint: 'chat',
       model: 'gpt-4',
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: prompt }
-      ],
+      messages,
       temperature: 0.7
     })
   });
 
-  const data: GPTResponse = await response.json();
+  const data: any = await response.json();
   const content = JSON.parse(data.choices[0].message.content);
   
   return {
@@ -69,13 +68,11 @@ export const generateIllustration = async (
   const prompt = `Create a child-friendly illustration for a story about ${preferences.childName} and their ${preferences.favoriteAnimal} in ${preferences.setting}. 
 The scene should be: ${storySegment.substring(0, 200)}...`;
 
-  const response = await fetch(`${OPENAI_API_URL}/images/generations`, {
+  const response = await fetch(API_URL, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${OPENAI_API_KEY}`
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
+      endpoint: 'image',
       model: 'dall-e-3',
       prompt,
       n: 1,
@@ -85,6 +82,6 @@ The scene should be: ${storySegment.substring(0, 200)}...`;
     })
   });
 
-  const data: DALLEResponse = await response.json();
+  const data: any = await response.json();
   return data.data[0].url;
 }; 

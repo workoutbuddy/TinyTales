@@ -1,7 +1,6 @@
 import { StoryPreferences } from '../types/story';
 
-const OPENAI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY;
-const OPENAI_API_URL = 'https://api.openai.com/v1';
+const API_URL = '/api/openai';
 
 export const generateStorySegment = async (
   preferences: StoryPreferences,
@@ -63,34 +62,25 @@ export const generateStorySegment = async (
     DO NOT use markdown or special formatting.
     DO NOT nest the choices object - it must be a simple array of strings.`;
 
-  const response = await fetch(`${OPENAI_API_URL}/chat/completions`, {
+  const messages = [
+    { role: 'system', content: systemPrompt },
+    ...previousSegments.map(text => ({ role: 'assistant', content: text })),
+    ...(lastChoice ? [{ role: 'user', content: `The child chose: ${lastChoice}` }] : []),
+    {
+      role: 'user',
+      content: isFinalSegment 
+        ? 'Create a satisfying ending for the story.'
+        : 'Continue the story with a new segment.'
+    }
+  ];
+
+  const response = await fetch(API_URL, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${OPENAI_API_KEY}`
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
+      endpoint: 'chat',
       model: 'gpt-4',
-      messages: [
-        {
-          role: 'system',
-          content: systemPrompt
-        },
-        ...previousSegments.map(text => ({
-          role: 'assistant',
-          content: text
-        })),
-        ...(lastChoice ? [{
-          role: 'user',
-          content: `The child chose: ${lastChoice}`
-        }] : []),
-        {
-          role: 'user',
-          content: isFinalSegment 
-            ? 'Create a satisfying ending for the story.'
-            : 'Continue the story with a new segment.'
-        }
-      ],
+      messages,
       temperature: 0.7,
       max_tokens: 500
     })
@@ -105,14 +95,11 @@ export const generateStorySegment = async (
   const data = await response.json();
   let storyText = '';
   let choices: string[] = [];
-  
   try {
     let content = data.choices[0].message.content;
-    // If content is a string that looks like JSON, parse it
     if (typeof content === 'string' && content.trim().startsWith('{')) {
       const parsed = JSON.parse(content);
       storyText = parsed.story || content;
-      // If this is the final segment, do not provide choices
       if (mustEndNow || isFinalSegment) {
         choices = [];
       } else {
@@ -135,40 +122,31 @@ export const generateStorySegment = async (
       choices = ["Continue the adventure", "Take a different path"];
     }
   }
-
   return { text: storyText, choices };
 };
 
 export const generateIllustration = async (prompt: string): Promise<string> => {
-  // Shorten and sanitize prompt for DALL-E
   let safePrompt = prompt.replace(/\n/g, ' ')
-    .replace(/["*#^_`~$%{}<>|\\]/g, '') // remove problematic characters
-    .replace(/\s+/g, ' ') // collapse whitespace
-    .slice(0, 250); // truncate to 250 chars
+    .replace(/["*#^_`~$%{}<>|\\]/g, '')
+    .replace(/\s+/g, ' ')
+    .slice(0, 250);
   safePrompt = `Create a child-friendly illustration for a story: ${safePrompt}`;
-  try {
-    const response = await fetch(`${OPENAI_API_URL}/images/generations`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${OPENAI_API_KEY}`
-      },
-      body: JSON.stringify({
-        model: 'dall-e-3',
-        prompt: safePrompt,
-        n: 1,
-        size: '1024x1024'
-      })
-    });
-    if (!response.ok) {
-      const error = await response.json();
-      console.error('OpenAI API Error (image):', error);
-      return '';
-    }
-    const data = await response.json();
-    return data.data[0].url;
-  } catch (err) {
-    console.error('OpenAI API Exception (image):', err);
+  const response = await fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      endpoint: 'image',
+      model: 'dall-e-3',
+      prompt: safePrompt,
+      n: 1,
+      size: '1024x1024'
+    })
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    console.error('OpenAI API Error (image):', error);
     return '';
   }
+  const data = await response.json();
+  return data.data[0].url;
 }; 
