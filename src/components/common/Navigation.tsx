@@ -3,7 +3,6 @@ import { Box, Button, Flex, Heading, Spacer } from '@chakra-ui/react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { logout } from '../../services/firebase';
-import { MoodSwitcher } from './MoodSwitcher';
 
 const Navigation: React.FC = () => {
   const navigate = useNavigate();
@@ -25,7 +24,6 @@ const Navigation: React.FC = () => {
           TinyTales
         </Heading>
         <Spacer />
-        <MoodSwitcher />
         {user && (
           <Button
             colorScheme="whiteAlpha"

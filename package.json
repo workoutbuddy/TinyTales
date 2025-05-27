@@ -1,5 +1,6 @@
 {
   "scripts": {
+    "dev": "react-scripts start",
     "start": "vite",
     "build": "vite build",
     "preview": "vite preview"
